@@ -1,5 +1,8 @@
 ## Location Manager Sample Vision
 
+This document explains the current state and direction of the project.
+Project overview and developer docs: [`README.md`](README.md)
+
 Location Manager Sample is a Swift journal-style app that stores visited
 locations, reverse-geocodes them, and displays saved places in a table and map.
 
