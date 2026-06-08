@@ -75,12 +75,12 @@ class LocationsStorage {
     } catch {
       return
     }
-    
+
     locations.append(location)
-    
+
     NotificationCenter.default.post(name: .newLocationSaved, object: self, userInfo: ["location": location])
   }
-  
+
   func saveCLLocationToDisk(_ clLocation: CLLocation) {
     let currentDate = Date()
     AppDelegate.geoCoder.reverseGeocodeLocation(clLocation) { placemarks, _ in

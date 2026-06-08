@@ -1,5 +1,7 @@
 # Location Storage Baseline Plan
 
+status: completed
+
 ## Context
 
 `location-manager-sample` is a Swift iOS sample that stores visited locations in

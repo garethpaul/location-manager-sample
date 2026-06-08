@@ -183,8 +183,8 @@ def main():
     require("force-unwrap" in changes and "user-state" in changes and "make check" in changes,
             "CHANGES must record storage hardening, metadata cleanup, and verification",
             failures)
-    require("Work Completed" in plan and "Verification" in plan,
-            "plan must describe completed work and verification",
+    require("status: completed" in plan and "Work Completed" in plan and "Verification" in plan,
+            "plan must be completed and describe completed work and verification",
             failures)
 
     if failures:
