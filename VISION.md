@@ -39,7 +39,6 @@ Canonical security policy and reporting:
 
 - [`SECURITY.md`](SECURITY.md)
 
-
 Location history is sensitive. The app should remain local-first, avoid logging
 precise locations, and make any retention, export, or sync behavior explicit.
 
