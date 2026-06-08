@@ -38,7 +38,7 @@ Contribution rules:
 Location history is sensitive. The app should remain local-first, avoid logging
 precise locations, and make any retention, export, or sync behavior explicit.
 
-## What We Will Not Merge For Now
+## What We Will Not Merge (For Now)
 
 - Background location upload or sync without privacy design
 - Private route traces or location histories
