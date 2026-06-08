@@ -39,6 +39,10 @@ class PlacesTableViewController: UITableViewController {
       name: .newLocationSaved,
       object: nil)
   }
+
+  deinit {
+    NotificationCenter.default.removeObserver(self, name: .newLocationSaved, object: nil)
+  }
   
   @objc func newLocationAdded(_ notification: Notification) {
     tableView.reloadData()

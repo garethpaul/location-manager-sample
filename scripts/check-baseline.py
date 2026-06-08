@@ -75,6 +75,7 @@ def main():
         "VISION.md",
         "Route.gpx",
         "docs/plans/2026-06-08-location-storage-baseline.md",
+        "docs/plans/2026-06-08-notification-observer-lifecycle.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -123,6 +124,8 @@ def main():
     app_plist = parse_plist("Journal/Info.plist", failures)
     project = read("Journal.xcodeproj/project.pbxproj")
     storage = read("Journal/LocationsStorage.swift")
+    map_controller = read("Journal/MapViewController.swift")
+    places_controller = read("Journal/PlacesTableViewController.swift")
     app_delegate = read("Journal/AppDelegate.swift")
     readme = read("README.md")
     vision = read("VISION.md")
@@ -130,6 +133,7 @@ def main():
     changes = read("CHANGES.md")
     gitignore = read(".gitignore")
     plan = PLAN.read_text(encoding="utf-8") if PLAN.exists() else ""
+    notification_plan = read("docs/plans/2026-06-08-notification-observer-lifecycle.md")
     tracked = git_ls_files()
 
     require("NSLocationAlwaysAndWhenInUseUsageDescription" in app_plist,
@@ -166,6 +170,16 @@ def main():
     require("try!" not in storage,
             "LocationsStorage must not force-unwrap file-system or JSON operations",
             failures)
+    for source_name, source in [
+        ("MapViewController", map_controller),
+        ("PlacesTableViewController", places_controller),
+    ]:
+        require("NotificationCenter.default.addObserver" in source and "name: .newLocationSaved" in source,
+                f"{source_name} must observe new location saves",
+                failures)
+        require("deinit" in source and "NotificationCenter.default.removeObserver(self, name: .newLocationSaved, object: nil)" in source,
+                f"{source_name} must remove the new-location observer on deinit",
+                failures)
 
     generated_patterns = ("xcuserdata", ".xcuserstate", ".DS_Store")
     offenders = [path for path in tracked if any(pattern in path for pattern in generated_patterns)]
@@ -180,11 +194,17 @@ def main():
         require("local" in content.lower() and "location" in content.lower(),
                 f"{path} must document local location privacy posture",
                 failures)
-    require("force-unwrap" in changes and "user-state" in changes and "make check" in changes,
-            "CHANGES must record storage hardening, metadata cleanup, and verification",
+        require("notification observer" in content.lower(),
+                f"{path} must document notification observer lifecycle handling",
+                failures)
+    require("force-unwrap" in changes and "user-state" in changes and "make check" in changes and "notification observer" in changes.lower(),
+            "CHANGES must record storage hardening, metadata cleanup, notification cleanup, and verification",
             failures)
     require("status: completed" in plan and "Work Completed" in plan and "Verification" in plan,
             "plan must be completed and describe completed work and verification",
+            failures)
+    require("status: completed" in notification_plan,
+            "notification observer lifecycle plan must be marked completed",
             failures)
 
     if failures:

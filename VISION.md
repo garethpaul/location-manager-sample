@@ -23,6 +23,7 @@ Priority:
 - Preserve location capture, reverse geocoding, local storage, and map display
 - Keep route fixture and security policy aligned with the sample
 - Keep location storage local-only and resilient to file-system/JSON failures
+- Pair saved-location notification observer registration with cleanup
 - Keep generated Finder and Xcode user-state metadata out of git
 - Avoid uploading or logging user location history
 - Preserve license comments and attribution in source files
@@ -42,6 +43,7 @@ Contribution rules:
   location logic.
 - Keep generated signing files and private route data out of git.
 - Document any change that transmits or stores location data differently.
+- Preserve notification observer lifecycle cleanup when changing map or places views.
 
 ## Security And Privacy
 
@@ -52,7 +54,8 @@ Canonical security policy and reporting:
 Location history is sensitive. The app should remain local-first, avoid logging
 precise locations, and make any retention, export, or sync behavior explicit.
 Storage failures should fail closed rather than crashing or exposing location
-history in logs.
+history in logs. Saved-location notification observer cleanup should remain
+explicit in the views that subscribe to local storage changes.
 
 ## What We Will Not Merge (For Now)
 

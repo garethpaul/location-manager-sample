@@ -39,6 +39,10 @@ class MapViewController: UIViewController {
     mapView.addAnnotations(annotations)
     NotificationCenter.default.addObserver(self, selector: #selector(newLocationAdded(_:)), name: .newLocationSaved, object: nil)
   }
+
+  deinit {
+    NotificationCenter.default.removeObserver(self, name: .newLocationSaved, object: nil)
+  }
   
   @IBAction func addItemPressed(_ sender: Any) {
     guard let currentLocation = mapView.userLocation.location else {

@@ -30,6 +30,7 @@ Helpful reports include:
 - Review found file, document, data, or media parsing flows; changes in those areas should receive security-focused review before merge.
 - `make check` runs `scripts/check-baseline.py` to verify local location-storage guardrails, generated-file ignores, project metadata, assets, plists, storyboards, and privacy documentation.
 - Saved location history should remain local app documents data. Changes that export, upload, sync, log, or broaden retention of locations need explicit privacy review.
+- Views that observe saved-location notifications should remove those notification observers when deallocated.
 - Generated Finder metadata, Xcode `xcuserdata`, `.xcuserstate`, local `.xcconfig`, private GPX traces, and exported location histories must stay out of git.
 - No primary dependency manifest was detected in the repository root. If dependencies are added later, include a manifest and prefer reproducible installation instructions.
 
@@ -39,8 +40,9 @@ If this project requests device permissions such as location, camera, microphone
 
 For this sample, reports should also state whether the issue affects always-on
 visit monitoring, local JSON location files, notifications, map annotations, or
-the bundled `Route.gpx` test fixture. Storage errors should fail closed without
-crashing the app or printing precise location history.
+the bundled `Route.gpx` test fixture. Storage errors and notification observer
+lifecycle issues should fail closed without crashing the app or printing precise
+location history.
 
 ## Dependency and Supply Chain Security
 
