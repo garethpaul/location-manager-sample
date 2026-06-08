@@ -44,3 +44,6 @@ precise locations, and make any retention, export, or sync behavior explicit.
 - Private route traces or location histories
 - Broad project migration mixed with storage behavior changes
 - Attribution/license removals
+
+This list is a roadmap guardrail, not a permanent rule.
+Strong user demand and strong technical rationale can change it.
