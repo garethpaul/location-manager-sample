@@ -34,19 +34,22 @@ class LocationsStorage {
   
   private(set) var locations: [Location]
   private let fileManager: FileManager
-  private let documentsURL: URL
+  private let documentsURL: URL?
   
-  init() {
-    let fileManager = FileManager.default
-    documentsURL = try! fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)    
+  init(fileManager: FileManager = .default) {
     self.fileManager = fileManager
+    documentsURL = try? fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+    
+    guard let documentsURL = documentsURL else {
+      locations = []
+      return
+    }
     
     let jsonDecoder = JSONDecoder()
-    
-    let locationFilesURLs = try! fileManager.contentsOfDirectory(at: documentsURL,
-                                                                 includingPropertiesForKeys: nil)
+    let locationFilesURLs = (try? fileManager.contentsOfDirectory(at: documentsURL,
+                                                                  includingPropertiesForKeys: nil)) ?? []
     locations = locationFilesURLs.compactMap { url -> Location? in
-      guard !url.absoluteString.contains(".DS_Store") else {
+      guard url.lastPathComponent != ".DS_Store" else {
         return nil
       }
       guard let data = try? Data(contentsOf: url) else {
@@ -58,11 +61,20 @@ class LocationsStorage {
   
   func saveLocationOnDisk(_ location: Location) {
     let encoder = JSONEncoder()
-    let timestamp = location.date.timeIntervalSince1970
-    let fileURL = documentsURL.appendingPathComponent("\(timestamp)")
-    
-    let data = try! encoder.encode(location)
-    try! data.write(to: fileURL)
+    guard
+      let documentsURL = documentsURL,
+      let data = try? encoder.encode(location)
+    else {
+      return
+    }
+
+    let fileURL = documentsURL.appendingPathComponent(fileName(for: location))
+
+    do {
+      try data.write(to: fileURL, options: .atomic)
+    } catch {
+      return
+    }
     
     locations.append(location)
     
@@ -78,9 +90,12 @@ class LocationsStorage {
       }
     }
   }
+
+  private func fileName(for location: Location) -> String {
+    return "\(location.date.timeIntervalSince1970).json"
+  }
 }
 
 extension Notification.Name {
   static let newLocationSaved = Notification.Name("newLocationSaved")
 }
-
