@@ -55,13 +55,15 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - The map and places views remove their saved-location notification observers when deallocated.
 - Saved-location publishing uses main-thread notification delivery before UIKit or MapKit observers update.
 - Location manager delegate setup happens before authorization and visit monitoring so early callbacks are handled.
+- Fake visit simulation uses the latest location update from CoreLocation
+  batches.
 - The places table uses a table index guard before reading saved locations during cell rendering.
 - Startup loading uses a saved-location JSON file filter before decoding local app documents.
 - Visit notifications use a redacted notification body so precise place descriptions stay inside the app.
 
 ## Testing and Verification
 
-- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, location manager delegate setup, main-thread notification delivery, redacted notification body handling, places table index guard handling, saved-location JSON file filter handling, local-only privacy docs, and generated-file ignores.
+- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, location manager delegate setup, latest location update selection, main-thread notification delivery, redacted notification body handling, places table index guard handling, saved-location JSON file filter handling, local-only privacy docs, and generated-file ignores.
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline so the standard local gate commands stay available while preserving
   the single source of truth for non-Xcode verification.

@@ -26,6 +26,7 @@ Priority:
 - Keep location storage local-only and resilient to file-system/JSON failures
 - Keep saved-location JSON file filter handling before decoding local documents
 - Keep location manager delegate setup ahead of authorization and visit monitoring
+- Keep fake visit simulation using the latest location update from CoreLocation batches
 - Pair saved-location notification observer registration with cleanup
 - Keep saved-location notification delivery on the main thread for UIKit/MapKit observers
 - Keep precise place descriptions out of the redacted notification body

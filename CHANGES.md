@@ -10,6 +10,8 @@
   rendering.
 - Added a redacted notification body for visit alerts so precise place
   descriptions stay inside the app.
+- Used the latest location update when fake visit simulation receives a
+  CoreLocation batch.
 
 ## 2026-06-08
 

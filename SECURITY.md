@@ -32,6 +32,8 @@ Helpful reports include:
 - Saved location history should remain local app documents data. Changes that export, upload, sync, log, or broaden retention of locations need explicit privacy review.
 - Saved-location JSON file filter handling should stay before decoding local app documents so unrelated files are ignored.
 - Location manager delegate setup should happen before authorization and visit monitoring so visit callbacks are handled by the app delegate.
+- Fake visit simulation should use the latest location update from CoreLocation
+  batches instead of an older sample.
 - Views that observe saved-location notifications should remove those notification observers when deallocated.
 - Saved-location publishing should keep main-thread notification delivery because notification observers update UIKit and MapKit state.
 - Local visit notifications should use a redacted notification body rather than exposing precise place descriptions outside the app.

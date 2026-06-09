@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "docs/plans/2026-06-08-location-storage-baseline.md"
+LATEST_LOCATION_PLAN = ROOT / "docs/plans/2026-06-09-latest-location-update-selection.md"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
@@ -82,6 +83,7 @@ def main():
         "docs/plans/2026-06-09-location-json-file-filter.md",
         "docs/plans/2026-06-09-make-gate-aliases.md",
         "docs/plans/2026-06-09-redacted-location-notification.md",
+        "docs/plans/2026-06-09-latest-location-update-selection.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -148,6 +150,7 @@ def main():
     json_filter_plan = read("docs/plans/2026-06-09-location-json-file-filter.md")
     make_gates_plan = read("docs/plans/2026-06-09-make-gate-aliases.md")
     redacted_notification_plan = read("docs/plans/2026-06-09-redacted-location-notification.md")
+    latest_location_plan = LATEST_LOCATION_PLAN.read_text(encoding="utf-8") if LATEST_LOCATION_PLAN.exists() else ""
     tracked = git_ls_files()
 
     require(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
@@ -178,6 +181,9 @@ def main():
     require('content.body = "A new location was saved."' in app_delegate and
             "content.body = location.description" not in app_delegate,
             "local visit notifications must use a redacted body instead of precise location details",
+            failures)
+    require("guard let location = locations.last else" in app_delegate and "locations.first" not in app_delegate,
+            "location update simulation must use the latest batched CoreLocation update",
             failures)
 
     require("documentsURL = try? fileManager.url" in storage,
@@ -254,6 +260,9 @@ def main():
         require("redacted notification body" in content.lower(),
                 f"{path} must document redacted location notification bodies",
                 failures)
+        require("latest location update" in content.lower(),
+                f"{path} must document latest location update selection",
+                failures)
     require("make lint" in readme and "make test" in readme and "make build" in readme,
             "README must document the standard local verification gates",
             failures)
@@ -265,6 +274,9 @@ def main():
             failures)
     require("force-unwrap" in changes and "user-state" in changes and "make check" in changes and "notification observer" in changes.lower() and "main-thread notification" in changes.lower() and "JSON file filter" in changes and "redacted notification body" in changes.lower(),
             "CHANGES must record storage hardening, metadata cleanup, notification cleanup, main-thread notification delivery, JSON file filtering, redacted notification bodies, and verification",
+            failures)
+    require("latest location update" in changes.lower(),
+            "CHANGES must record latest location update selection",
             failures)
     require("location manager delegate setup" in changes.lower(),
             "CHANGES must record location manager delegate setup hardening",
@@ -295,6 +307,9 @@ def main():
             failures)
     require("status: completed" in redacted_notification_plan,
             "redacted location notification plan must be marked completed",
+            failures)
+    require("status: completed" in latest_location_plan,
+            "latest location update selection plan must be marked completed",
             failures)
 
     if failures:
