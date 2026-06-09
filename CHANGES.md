@@ -6,6 +6,8 @@
   documents.
 - Added a places table index guard before reading saved locations during cell
   rendering.
+- Added a redacted notification body for visit alerts so precise place
+  descriptions stay inside the app.
 
 ## 2026-06-08
 

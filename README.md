@@ -54,10 +54,11 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Location manager delegate setup happens before authorization and visit monitoring so early callbacks are handled.
 - The places table uses a table index guard before reading saved locations during cell rendering.
 - Startup loading uses a saved-location JSON file filter before decoding local app documents.
+- Visit notifications use a redacted notification body so precise place descriptions stay inside the app.
 
 ## Testing and Verification
 
-- `make check` runs `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, location manager delegate setup, main-thread notification delivery, places table index guard handling, saved-location JSON file filter handling, local-only privacy docs, and generated-file ignores.
+- `make check` runs `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, location manager delegate setup, main-thread notification delivery, redacted notification body handling, places table index guard handling, saved-location JSON file filter handling, local-only privacy docs, and generated-file ignores.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.

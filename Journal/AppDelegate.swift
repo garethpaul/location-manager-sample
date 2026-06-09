@@ -78,7 +78,7 @@ extension AppDelegate: CLLocationManagerDelegate {
     
     let content = UNMutableNotificationContent()
     content.title = "New Journal entry 📌"
-    content.body = location.description
+    content.body = "A new location was saved."
     content.sound = UNNotificationSound.default
     
     let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)

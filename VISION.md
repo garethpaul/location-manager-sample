@@ -28,6 +28,7 @@ Priority:
 - Keep location manager delegate setup ahead of authorization and visit monitoring
 - Pair saved-location notification observer registration with cleanup
 - Keep saved-location notification delivery on the main thread for UIKit/MapKit observers
+- Keep precise place descriptions out of the redacted notification body
 - Keep the places table index guard before reading saved locations
 - Keep generated Finder and Xcode user-state metadata out of git
 - Avoid uploading or logging user location history
@@ -62,7 +63,8 @@ Storage failures should fail closed rather than crashing or exposing location
 history in logs, and saved-location JSON file filter handling should keep
 unrelated local documents out of the decode path. Saved-location notification observer cleanup and main-thread
 notification delivery should remain explicit for views that subscribe to local
-storage changes.
+storage changes. The redacted notification body should avoid showing precise
+place descriptions outside the app.
 
 ## What We Will Not Merge (For Now)
 

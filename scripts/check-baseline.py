@@ -80,6 +80,7 @@ def main():
         "docs/plans/2026-06-08-notification-observer-lifecycle.md",
         "docs/plans/2026-06-09-places-table-index-guard.md",
         "docs/plans/2026-06-09-location-json-file-filter.md",
+        "docs/plans/2026-06-09-redacted-location-notification.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -143,6 +144,7 @@ def main():
     notification_plan = read("docs/plans/2026-06-08-notification-observer-lifecycle.md")
     table_index_plan = read("docs/plans/2026-06-09-places-table-index-guard.md")
     json_filter_plan = read("docs/plans/2026-06-09-location-json-file-filter.md")
+    redacted_notification_plan = read("docs/plans/2026-06-09-redacted-location-notification.md")
     tracked = git_ls_files()
 
     require("NSLocationAlwaysAndWhenInUseUsageDescription" in app_plist,
@@ -165,6 +167,10 @@ def main():
     monitoring_index = app_delegate.find("locationManager.startMonitoringVisits()")
     require(0 <= delegate_index < authorization_index < monitoring_index,
             "AppDelegate must assign the location manager delegate before authorization and visit monitoring",
+            failures)
+    require('content.body = "A new location was saved."' in app_delegate and
+            "content.body = location.description" not in app_delegate,
+            "local visit notifications must use a redacted body instead of precise location details",
             failures)
 
     require("documentsURL = try? fileManager.url" in storage,
@@ -238,8 +244,11 @@ def main():
         require("JSON file filter" in content,
                 f"{path} must document saved-location JSON file filter handling",
                 failures)
-    require("force-unwrap" in changes and "user-state" in changes and "make check" in changes and "notification observer" in changes.lower() and "main-thread notification" in changes.lower() and "JSON file filter" in changes,
-            "CHANGES must record storage hardening, metadata cleanup, notification cleanup, main-thread notification delivery, JSON file filtering, and verification",
+        require("redacted notification body" in content.lower(),
+                f"{path} must document redacted location notification bodies",
+                failures)
+    require("force-unwrap" in changes and "user-state" in changes and "make check" in changes and "notification observer" in changes.lower() and "main-thread notification" in changes.lower() and "JSON file filter" in changes and "redacted notification body" in changes.lower(),
+            "CHANGES must record storage hardening, metadata cleanup, notification cleanup, main-thread notification delivery, JSON file filtering, redacted notification bodies, and verification",
             failures)
     require("location manager delegate setup" in changes.lower(),
             "CHANGES must record location manager delegate setup hardening",
@@ -264,6 +273,9 @@ def main():
             failures)
     require("status: completed" in json_filter_plan,
             "saved-location JSON file filter plan must be marked completed",
+            failures)
+    require("status: completed" in redacted_notification_plan,
+            "redacted location notification plan must be marked completed",
             failures)
 
     if failures:
