@@ -30,6 +30,7 @@ Helpful reports include:
 - Review found file, document, data, or media parsing flows; changes in those areas should receive security-focused review before merge.
 - `make check` runs `scripts/check-baseline.py` to verify local location-storage guardrails, generated-file ignores, project metadata, assets, plists, storyboards, and privacy documentation.
 - Saved location history should remain local app documents data. Changes that export, upload, sync, log, or broaden retention of locations need explicit privacy review.
+- Saved-location JSON file filter handling should stay before decoding local app documents so unrelated files are ignored.
 - Location manager delegate setup should happen before authorization and visit monitoring so visit callbacks are handled by the app delegate.
 - Views that observe saved-location notifications should remove those notification observers when deallocated.
 - Saved-location publishing should keep main-thread notification delivery because notification observers update UIKit and MapKit state.

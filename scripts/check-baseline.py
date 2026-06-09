@@ -79,6 +79,7 @@ def main():
         "docs/plans/2026-06-08-location-notification-main-thread.md",
         "docs/plans/2026-06-08-notification-observer-lifecycle.md",
         "docs/plans/2026-06-09-places-table-index-guard.md",
+        "docs/plans/2026-06-09-location-json-file-filter.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -141,6 +142,7 @@ def main():
     main_thread_plan = read("docs/plans/2026-06-08-location-notification-main-thread.md")
     notification_plan = read("docs/plans/2026-06-08-notification-observer-lifecycle.md")
     table_index_plan = read("docs/plans/2026-06-09-places-table-index-guard.md")
+    json_filter_plan = read("docs/plans/2026-06-09-location-json-file-filter.md")
     tracked = git_ls_files()
 
     require("NSLocationAlwaysAndWhenInUseUsageDescription" in app_plist,
@@ -179,6 +181,9 @@ def main():
             failures)
     require("fileName(for location: Location)" in storage and '.json"' in storage,
             "LocationsStorage must use explicit JSON filenames for new saves",
+            failures)
+    require('url.pathExtension.lowercased() == "json"' in storage,
+            "LocationsStorage must filter persisted location loads to JSON files",
             failures)
     require("try!" not in storage,
             "LocationsStorage must not force-unwrap file-system or JSON operations",
@@ -230,8 +235,11 @@ def main():
         require("table index guard" in content.lower(),
                 f"{path} must document places table index guard handling",
                 failures)
-    require("force-unwrap" in changes and "user-state" in changes and "make check" in changes and "notification observer" in changes.lower() and "main-thread notification" in changes.lower(),
-            "CHANGES must record storage hardening, metadata cleanup, notification cleanup, main-thread notification delivery, and verification",
+        require("JSON file filter" in content,
+                f"{path} must document saved-location JSON file filter handling",
+                failures)
+    require("force-unwrap" in changes and "user-state" in changes and "make check" in changes and "notification observer" in changes.lower() and "main-thread notification" in changes.lower() and "JSON file filter" in changes,
+            "CHANGES must record storage hardening, metadata cleanup, notification cleanup, main-thread notification delivery, JSON file filtering, and verification",
             failures)
     require("location manager delegate setup" in changes.lower(),
             "CHANGES must record location manager delegate setup hardening",
@@ -253,6 +261,9 @@ def main():
             failures)
     require("status: completed" in table_index_plan,
             "places table index guard plan must be marked completed",
+            failures)
+    require("status: completed" in json_filter_plan,
+            "saved-location JSON file filter plan must be marked completed",
             failures)
 
     if failures:

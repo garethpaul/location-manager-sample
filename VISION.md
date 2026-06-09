@@ -24,6 +24,7 @@ Priority:
 - Preserve location capture, reverse geocoding, local storage, and map display
 - Keep route fixture and security policy aligned with the sample
 - Keep location storage local-only and resilient to file-system/JSON failures
+- Keep saved-location JSON file filter handling before decoding local documents
 - Keep location manager delegate setup ahead of authorization and visit monitoring
 - Pair saved-location notification observer registration with cleanup
 - Keep saved-location notification delivery on the main thread for UIKit/MapKit observers
@@ -58,7 +59,8 @@ Canonical security policy and reporting:
 Location history is sensitive. The app should remain local-first, avoid logging
 precise locations, and make any retention, export, or sync behavior explicit.
 Storage failures should fail closed rather than crashing or exposing location
-history in logs. Saved-location notification observer cleanup and main-thread
+history in logs, and saved-location JSON file filter handling should keep
+unrelated local documents out of the decode path. Saved-location notification observer cleanup and main-thread
 notification delivery should remain explicit for views that subscribe to local
 storage changes.
 

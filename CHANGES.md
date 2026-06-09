@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Added a saved-location JSON file filter before decoding persisted local
+  documents.
 - Added a places table index guard before reading saved locations during cell
   rendering.
 

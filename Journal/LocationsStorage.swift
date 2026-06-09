@@ -49,6 +49,9 @@ class LocationsStorage {
     let locationFilesURLs = (try? fileManager.contentsOfDirectory(at: documentsURL,
                                                                   includingPropertiesForKeys: nil)) ?? []
     locations = locationFilesURLs.compactMap { url -> Location? in
+      guard url.pathExtension.lowercased() == "json" else {
+        return nil
+      }
       guard url.lastPathComponent != ".DS_Store" else {
         return nil
       }
