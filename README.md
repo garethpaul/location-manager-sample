@@ -52,10 +52,11 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - The map and places views remove their saved-location notification observers when deallocated.
 - Saved-location publishing uses main-thread notification delivery before UIKit or MapKit observers update.
 - Location manager delegate setup happens before authorization and visit monitoring so early callbacks are handled.
+- The places table uses a table index guard before reading saved locations during cell rendering.
 
 ## Testing and Verification
 
-- `make check` runs `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, location manager delegate setup, main-thread notification delivery, local-only privacy docs, and generated-file ignores.
+- `make check` runs `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, location manager delegate setup, main-thread notification delivery, places table index guard handling, local-only privacy docs, and generated-file ignores.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.

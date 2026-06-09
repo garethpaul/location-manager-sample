@@ -27,6 +27,7 @@ Priority:
 - Keep location manager delegate setup ahead of authorization and visit monitoring
 - Pair saved-location notification observer registration with cleanup
 - Keep saved-location notification delivery on the main thread for UIKit/MapKit observers
+- Keep the places table index guard before reading saved locations
 - Keep generated Finder and Xcode user-state metadata out of git
 - Avoid uploading or logging user location history
 - Preserve license comments and attribution in source files

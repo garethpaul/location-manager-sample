@@ -33,6 +33,7 @@ Helpful reports include:
 - Location manager delegate setup should happen before authorization and visit monitoring so visit callbacks are handled by the app delegate.
 - Views that observe saved-location notifications should remove those notification observers when deallocated.
 - Saved-location publishing should keep main-thread notification delivery because notification observers update UIKit and MapKit state.
+- The places table index guard should remain before reading saved locations because notification-driven updates can change storage between row counting and cell rendering.
 - Generated Finder metadata, Xcode `xcuserdata`, `.xcuserstate`, local `.xcconfig`, private GPX traces, and exported location histories must stay out of git.
 - No primary dependency manifest was detected in the repository root. If dependencies are added later, include a manifest and prefer reproducible installation instructions.
 

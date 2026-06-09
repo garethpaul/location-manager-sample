@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-09
+
+- Added a places table index guard before reading saved locations during cell
+  rendering.
+
 ## 2026-06-08
 
 - Hardened local location persistence so document-directory, directory listing, JSON encoding, and file writes fail closed instead of force-unwrapping.

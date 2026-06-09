@@ -78,6 +78,7 @@ def main():
         "docs/plans/2026-06-08-location-manager-delegate-setup.md",
         "docs/plans/2026-06-08-location-notification-main-thread.md",
         "docs/plans/2026-06-08-notification-observer-lifecycle.md",
+        "docs/plans/2026-06-09-places-table-index-guard.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -139,6 +140,7 @@ def main():
     delegate_plan = delegate_plan_path.read_text(encoding="utf-8") if delegate_plan_path.exists() else ""
     main_thread_plan = read("docs/plans/2026-06-08-location-notification-main-thread.md")
     notification_plan = read("docs/plans/2026-06-08-notification-observer-lifecycle.md")
+    table_index_plan = read("docs/plans/2026-06-09-places-table-index-guard.md")
     tracked = git_ls_files()
 
     require("NSLocationAlwaysAndWhenInUseUsageDescription" in app_plist,
@@ -197,6 +199,11 @@ def main():
         require("deinit" in source and "NotificationCenter.default.removeObserver(self, name: .newLocationSaved, object: nil)" in source,
                 f"{source_name} must remove the new-location observer on deinit",
                 failures)
+    require("let locations = LocationsStorage.shared.locations" in places_controller and
+            "guard indexPath.row < locations.count" in places_controller and
+            "let location = locations[indexPath.row]" in places_controller,
+            "PlacesTableViewController must guard row indexes before reading saved locations",
+            failures)
 
     generated_patterns = ("xcuserdata", ".xcuserstate", ".DS_Store")
     offenders = [path for path in tracked if any(pattern in path for pattern in generated_patterns)]
@@ -220,11 +227,17 @@ def main():
         require("location manager delegate setup" in content.lower(),
                 f"{path} must document location manager delegate setup order",
                 failures)
+        require("table index guard" in content.lower(),
+                f"{path} must document places table index guard handling",
+                failures)
     require("force-unwrap" in changes and "user-state" in changes and "make check" in changes and "notification observer" in changes.lower() and "main-thread notification" in changes.lower(),
             "CHANGES must record storage hardening, metadata cleanup, notification cleanup, main-thread notification delivery, and verification",
             failures)
     require("location manager delegate setup" in changes.lower(),
             "CHANGES must record location manager delegate setup hardening",
+            failures)
+    require("table index guard" in changes.lower(),
+            "CHANGES must record places table index guard hardening",
             failures)
     require("status: completed" in plan and "Work Completed" in plan and "Verification" in plan,
             "plan must be completed and describe completed work and verification",
@@ -237,6 +250,9 @@ def main():
             failures)
     require("status: completed" in delegate_plan,
             "location manager delegate setup plan must be marked completed",
+            failures)
+    require("status: completed" in table_index_plan,
+            "places table index guard plan must be marked completed",
             failures)
 
     if failures:
