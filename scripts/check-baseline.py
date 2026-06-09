@@ -75,6 +75,7 @@ def main():
         "VISION.md",
         "Route.gpx",
         "docs/plans/2026-06-08-location-storage-baseline.md",
+        "docs/plans/2026-06-08-location-manager-delegate-setup.md",
         "docs/plans/2026-06-08-location-notification-main-thread.md",
         "docs/plans/2026-06-08-notification-observer-lifecycle.md",
         "docs/readme-overview.svg",
@@ -134,6 +135,8 @@ def main():
     changes = read("CHANGES.md")
     gitignore = read(".gitignore")
     plan = PLAN.read_text(encoding="utf-8") if PLAN.exists() else ""
+    delegate_plan_path = ROOT / "docs/plans/2026-06-08-location-manager-delegate-setup.md"
+    delegate_plan = delegate_plan_path.read_text(encoding="utf-8") if delegate_plan_path.exists() else ""
     main_thread_plan = read("docs/plans/2026-06-08-location-notification-main-thread.md")
     notification_plan = read("docs/plans/2026-06-08-notification-observer-lifecycle.md")
     tracked = git_ls_files()
@@ -152,6 +155,12 @@ def main():
             failures)
     require("requestAlwaysAuthorization()" in app_delegate and "startMonitoringVisits()" in app_delegate,
             "AppDelegate must preserve the visit-monitoring sample flow",
+            failures)
+    delegate_index = app_delegate.find("locationManager.delegate = self")
+    authorization_index = app_delegate.find("locationManager.requestAlwaysAuthorization()")
+    monitoring_index = app_delegate.find("locationManager.startMonitoringVisits()")
+    require(0 <= delegate_index < authorization_index < monitoring_index,
+            "AppDelegate must assign the location manager delegate before authorization and visit monitoring",
             failures)
 
     require("documentsURL = try? fileManager.url" in storage,
@@ -208,8 +217,14 @@ def main():
         require("main-thread notification" in content.lower(),
                 f"{path} must document main-thread notification delivery",
                 failures)
+        require("location manager delegate setup" in content.lower(),
+                f"{path} must document location manager delegate setup order",
+                failures)
     require("force-unwrap" in changes and "user-state" in changes and "make check" in changes and "notification observer" in changes.lower() and "main-thread notification" in changes.lower(),
             "CHANGES must record storage hardening, metadata cleanup, notification cleanup, main-thread notification delivery, and verification",
+            failures)
+    require("location manager delegate setup" in changes.lower(),
+            "CHANGES must record location manager delegate setup hardening",
             failures)
     require("status: completed" in plan and "Work Completed" in plan and "Verification" in plan,
             "plan must be completed and describe completed work and verification",
@@ -219,6 +234,9 @@ def main():
             failures)
     require("status: completed" in main_thread_plan,
             "location notification main-thread plan must be marked completed",
+            failures)
+    require("status: completed" in delegate_plan,
+            "location manager delegate setup plan must be marked completed",
             failures)
 
     if failures:

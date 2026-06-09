@@ -44,10 +44,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     center.requestAuthorization(options: [.alert, .sound]) { granted, error in
     }
+    locationManager.delegate = self
     locationManager.requestAlwaysAuthorization()
     
     locationManager.startMonitoringVisits()
-    locationManager.delegate = self
     
     // Uncomment following code to enable fake visits
 //    locationManager.distanceFilter = 35 // 0

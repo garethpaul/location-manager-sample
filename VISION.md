@@ -24,6 +24,7 @@ Priority:
 - Preserve location capture, reverse geocoding, local storage, and map display
 - Keep route fixture and security policy aligned with the sample
 - Keep location storage local-only and resilient to file-system/JSON failures
+- Keep location manager delegate setup ahead of authorization and visit monitoring
 - Pair saved-location notification observer registration with cleanup
 - Keep saved-location notification delivery on the main thread for UIKit/MapKit observers
 - Keep generated Finder and Xcode user-state metadata out of git
