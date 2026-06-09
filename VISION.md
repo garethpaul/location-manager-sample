@@ -14,7 +14,8 @@ storage and privacy boundaries explicit.
 
 Current baseline: `make check` runs `scripts/check-baseline.py` to verify
 project files, route fixtures, plist/storyboard/assets, local location-storage
-guardrails, generated metadata ignores, and privacy documentation.
+guardrails, main-thread notification delivery, generated metadata ignores, and
+privacy documentation.
 
 The current focus is:
 
@@ -24,6 +25,7 @@ Priority:
 - Keep route fixture and security policy aligned with the sample
 - Keep location storage local-only and resilient to file-system/JSON failures
 - Pair saved-location notification observer registration with cleanup
+- Keep saved-location notification delivery on the main thread for UIKit/MapKit observers
 - Keep generated Finder and Xcode user-state metadata out of git
 - Avoid uploading or logging user location history
 - Preserve license comments and attribution in source files
@@ -54,8 +56,9 @@ Canonical security policy and reporting:
 Location history is sensitive. The app should remain local-first, avoid logging
 precise locations, and make any retention, export, or sync behavior explicit.
 Storage failures should fail closed rather than crashing or exposing location
-history in logs. Saved-location notification observer cleanup should remain
-explicit in the views that subscribe to local storage changes.
+history in logs. Saved-location notification observer cleanup and main-thread
+notification delivery should remain explicit for views that subscribe to local
+storage changes.
 
 ## What We Will Not Merge (For Now)
 

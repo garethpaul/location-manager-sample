@@ -50,10 +50,11 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 
 - Open `Journal.xcodeproj` in Xcode, choose the app or sample scheme, and run it on the matching simulator/device.
 - The map and places views remove their saved-location notification observers when deallocated.
+- Saved-location publishing uses main-thread notification delivery before UIKit or MapKit observers update.
 
 ## Testing and Verification
 
-- `make check` runs `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, local-only privacy docs, and generated-file ignores.
+- `make check` runs `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, main-thread notification delivery, local-only privacy docs, and generated-file ignores.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -70,6 +71,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Location persistence should remain local-only unless a future change includes explicit privacy design, retention notes, and security review.
 - `LocationsStorage` should not force-unwrap document-directory, JSON, or file-write operations because location history is privacy-sensitive and should fail closed on storage errors.
 - Notification observer cleanup should stay paired with saved-location observer registration in map and places views.
+- Saved-location notifications should continue to publish on the main thread because observers update UIKit and MapKit.
 - Review changes touching file, media, JSON, XML, CSV, OCR, or data parsing; examples from the scan include Journal/Info.plist, Journal.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist, Journal.xcodeproj/xcshareddata/IDETemplateMacros.plist, Journal.xcodeproj/xcuserdata/gpj.xcuserdatad/xcschemes/xcschememanagement.plist.
 
 ## Maintenance Notes

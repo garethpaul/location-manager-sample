@@ -31,6 +31,7 @@ Helpful reports include:
 - `make check` runs `scripts/check-baseline.py` to verify local location-storage guardrails, generated-file ignores, project metadata, assets, plists, storyboards, and privacy documentation.
 - Saved location history should remain local app documents data. Changes that export, upload, sync, log, or broaden retention of locations need explicit privacy review.
 - Views that observe saved-location notifications should remove those notification observers when deallocated.
+- Saved-location publishing should keep main-thread notification delivery because notification observers update UIKit and MapKit state.
 - Generated Finder metadata, Xcode `xcuserdata`, `.xcuserstate`, local `.xcconfig`, private GPX traces, and exported location histories must stay out of git.
 - No primary dependency manifest was detected in the repository root. If dependencies are added later, include a manifest and prefer reproducible installation instructions.
 
@@ -43,6 +44,8 @@ visit monitoring, local JSON location files, notifications, map annotations, or
 the bundled `Route.gpx` test fixture. Storage errors and notification observer
 lifecycle issues should fail closed without crashing the app or printing precise
 location history.
+Saved-location main-thread notification delivery should remain in place before
+UIKit or MapKit observers update.
 
 ## Dependency and Supply Chain Security
 

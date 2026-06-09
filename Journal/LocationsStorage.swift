@@ -76,9 +76,20 @@ class LocationsStorage {
       return
     }
 
-    locations.append(location)
+    publishSavedLocation(location)
+  }
 
-    NotificationCenter.default.post(name: .newLocationSaved, object: self, userInfo: ["location": location])
+  private func publishSavedLocation(_ location: Location) {
+    let publish = {
+      self.locations.append(location)
+      NotificationCenter.default.post(name: .newLocationSaved, object: self, userInfo: ["location": location])
+    }
+
+    if Thread.isMainThread {
+      publish()
+    } else {
+      DispatchQueue.main.async(execute: publish)
+    }
   }
 
   func saveCLLocationToDisk(_ clLocation: CLLocation) {

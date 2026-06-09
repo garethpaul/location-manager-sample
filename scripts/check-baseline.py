@@ -75,6 +75,7 @@ def main():
         "VISION.md",
         "Route.gpx",
         "docs/plans/2026-06-08-location-storage-baseline.md",
+        "docs/plans/2026-06-08-location-notification-main-thread.md",
         "docs/plans/2026-06-08-notification-observer-lifecycle.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
@@ -133,6 +134,7 @@ def main():
     changes = read("CHANGES.md")
     gitignore = read(".gitignore")
     plan = PLAN.read_text(encoding="utf-8") if PLAN.exists() else ""
+    main_thread_plan = read("docs/plans/2026-06-08-location-notification-main-thread.md")
     notification_plan = read("docs/plans/2026-06-08-notification-observer-lifecycle.md")
     tracked = git_ls_files()
 
@@ -170,6 +172,12 @@ def main():
     require("try!" not in storage,
             "LocationsStorage must not force-unwrap file-system or JSON operations",
             failures)
+    require("func publishSavedLocation(_ location: Location)" in storage and "Thread.isMainThread" in storage,
+            "LocationsStorage must centralize saved-location publishing and check the main thread",
+            failures)
+    require("DispatchQueue.main.async" in storage and "NotificationCenter.default.post(name: .newLocationSaved" in storage,
+            "LocationsStorage must dispatch saved-location notifications to the main queue when needed",
+            failures)
     for source_name, source in [
         ("MapViewController", map_controller),
         ("PlacesTableViewController", places_controller),
@@ -197,14 +205,20 @@ def main():
         require("notification observer" in content.lower(),
                 f"{path} must document notification observer lifecycle handling",
                 failures)
-    require("force-unwrap" in changes and "user-state" in changes and "make check" in changes and "notification observer" in changes.lower(),
-            "CHANGES must record storage hardening, metadata cleanup, notification cleanup, and verification",
+        require("main-thread notification" in content.lower(),
+                f"{path} must document main-thread notification delivery",
+                failures)
+    require("force-unwrap" in changes and "user-state" in changes and "make check" in changes and "notification observer" in changes.lower() and "main-thread notification" in changes.lower(),
+            "CHANGES must record storage hardening, metadata cleanup, notification cleanup, main-thread notification delivery, and verification",
             failures)
     require("status: completed" in plan and "Work Completed" in plan and "Verification" in plan,
             "plan must be completed and describe completed work and verification",
             failures)
     require("status: completed" in notification_plan,
             "notification observer lifecycle plan must be marked completed",
+            failures)
+    require("status: completed" in main_thread_plan,
+            "location notification main-thread plan must be marked completed",
             failures)
 
     if failures:
