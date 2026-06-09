@@ -80,6 +80,7 @@ def main():
         "docs/plans/2026-06-08-notification-observer-lifecycle.md",
         "docs/plans/2026-06-09-places-table-index-guard.md",
         "docs/plans/2026-06-09-location-json-file-filter.md",
+        "docs/plans/2026-06-09-make-gate-aliases.md",
         "docs/plans/2026-06-09-redacted-location-notification.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
@@ -136,6 +137,7 @@ def main():
     vision = read("VISION.md")
     security = read("SECURITY.md")
     changes = read("CHANGES.md")
+    makefile = read("Makefile")
     gitignore = read(".gitignore")
     plan = PLAN.read_text(encoding="utf-8") if PLAN.exists() else ""
     delegate_plan_path = ROOT / "docs/plans/2026-06-08-location-manager-delegate-setup.md"
@@ -144,8 +146,13 @@ def main():
     notification_plan = read("docs/plans/2026-06-08-notification-observer-lifecycle.md")
     table_index_plan = read("docs/plans/2026-06-09-places-table-index-guard.md")
     json_filter_plan = read("docs/plans/2026-06-09-location-json-file-filter.md")
+    make_gates_plan = read("docs/plans/2026-06-09-make-gate-aliases.md")
     redacted_notification_plan = read("docs/plans/2026-06-09-redacted-location-notification.md")
     tracked = git_ls_files()
+
+    require(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
+            "Makefile must expose lint, test, build, and check verification gates",
+            failures)
 
     require("NSLocationAlwaysAndWhenInUseUsageDescription" in app_plist,
             "Info.plist must document always-and-when-in-use location permission",
@@ -247,6 +254,15 @@ def main():
         require("redacted notification body" in content.lower(),
                 f"{path} must document redacted location notification bodies",
                 failures)
+    require("make lint" in readme and "make test" in readme and "make build" in readme,
+            "README must document the standard local verification gates",
+            failures)
+    require("make lint" in vision and "make test" in vision and "make build" in vision,
+            "VISION must document the standard local verification gates",
+            failures)
+    require("make lint" in changes and "make test" in changes and "make build" in changes,
+            "CHANGES must record the standard local verification gates",
+            failures)
     require("force-unwrap" in changes and "user-state" in changes and "make check" in changes and "notification observer" in changes.lower() and "main-thread notification" in changes.lower() and "JSON file filter" in changes and "redacted notification body" in changes.lower(),
             "CHANGES must record storage hardening, metadata cleanup, notification cleanup, main-thread notification delivery, JSON file filtering, redacted notification bodies, and verification",
             failures)
@@ -273,6 +289,9 @@ def main():
             failures)
     require("status: completed" in json_filter_plan,
             "saved-location JSON file filter plan must be marked completed",
+            failures)
+    require("status: completed" in make_gates_plan,
+            "make gate aliases plan must be marked completed",
             failures)
     require("status: completed" in redacted_notification_plan,
             "redacted location notification plan must be marked completed",

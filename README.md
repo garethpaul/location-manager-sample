@@ -25,7 +25,7 @@ Additional scan context:
 
 - Source directories: Journal, Journal.xcodeproj, scripts
 - Dependency and build manifests: Makefile
-- Entry points or build surfaces: `make check`, Journal.xcodeproj
+- Entry points or build surfaces: `make lint`, `make test`, `make build`, `make check`, Journal.xcodeproj
 - Test-looking files: no obvious test files detected
 
 ## Getting Started
@@ -33,7 +33,7 @@ Additional scan context:
 ### Prerequisites
 
 - Git
-- Python 3 for `make check`
+- Python 3 for `make lint`, `make test`, `make build`, and `make check`
 - macOS with Xcode for building Apple platform projects
 
 ### Setup
@@ -41,6 +41,9 @@ Additional scan context:
 ```bash
 git clone https://github.com/garethpaul/location-manager-sample.git
 cd location-manager-sample
+make lint
+make test
+make build
 make check
 ```
 
@@ -58,7 +61,10 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 
 ## Testing and Verification
 
-- `make check` runs `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, location manager delegate setup, main-thread notification delivery, redacted notification body handling, places table index guard handling, saved-location JSON file filter handling, local-only privacy docs, and generated-file ignores.
+- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, location manager delegate setup, main-thread notification delivery, redacted notification body handling, places table index guard handling, saved-location JSON file filter handling, local-only privacy docs, and generated-file ignores.
+- The `lint`, `test`, and `build` targets intentionally alias the static
+  baseline so the standard local gate commands stay available while preserving
+  the single source of truth for non-Xcode verification.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -82,9 +88,10 @@ When the required SDK or runtime is unavailable, use static checks and source re
 ## Maintenance Notes
 
 - This looks like an Apple platform project or sample. Xcode, Swift, CocoaPods, and deployment target versions may need to match the original project era.
-- Run `make check` before pushing Swift, project, route fixture, asset, plist, storyboard, README, or security-policy changes.
+- Run `make lint`, `make test`, `make build`, and `make check` before pushing Swift, project, route fixture, asset, plist, storyboard, README, or security-policy changes.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
+- See `docs/plans/2026-06-09-make-gate-aliases.md` for the local gate alias guardrail.
 
 ## Contributing
 
