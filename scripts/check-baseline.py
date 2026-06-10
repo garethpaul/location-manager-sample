@@ -84,6 +84,7 @@ def main():
         "docs/plans/2026-06-09-make-gate-aliases.md",
         "docs/plans/2026-06-09-redacted-location-notification.md",
         "docs/plans/2026-06-09-latest-location-update-selection.md",
+        "docs/plans/2026-06-10-reverse-geocode-fallback-description.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -151,6 +152,7 @@ def main():
     make_gates_plan = read("docs/plans/2026-06-09-make-gate-aliases.md")
     redacted_notification_plan = read("docs/plans/2026-06-09-redacted-location-notification.md")
     latest_location_plan = LATEST_LOCATION_PLAN.read_text(encoding="utf-8") if LATEST_LOCATION_PLAN.exists() else ""
+    reverse_geocode_plan = read("docs/plans/2026-06-10-reverse-geocode-fallback-description.md")
     tracked = git_ls_files()
 
     require(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
@@ -185,6 +187,10 @@ def main():
     require("guard let location = locations.last else" in app_delegate and "locations.first" not in app_delegate,
             "location update simulation must use the latest batched CoreLocation update",
             failures)
+    require(app_delegate.count('?? "Saved location"') >= 2 and
+            'let description = "Fake visit: \\(placeDescription)"' in app_delegate,
+            "AppDelegate must save visits with fallback descriptions when reverse geocoding has no placemark",
+            failures)
 
     require("documentsURL = try? fileManager.url" in storage,
             "LocationsStorage must guard document-directory access",
@@ -212,6 +218,9 @@ def main():
             failures)
     require("DispatchQueue.main.async" in storage and "NotificationCenter.default.post(name: .newLocationSaved" in storage,
             "LocationsStorage must dispatch saved-location notifications to the main queue when needed",
+            failures)
+    require('?? "Saved location"' in storage and "self.saveLocationOnDisk(location)" in storage,
+            "LocationsStorage must save map-added locations with fallback descriptions when reverse geocoding has no placemark",
             failures)
     for source_name, source in [
         ("MapViewController", map_controller),
@@ -263,6 +272,9 @@ def main():
         require("latest location update" in content.lower(),
                 f"{path} must document latest location update selection",
                 failures)
+        require("reverse-geocode fallback" in content.lower(),
+                f"{path} must document reverse-geocode fallback descriptions",
+                failures)
     require("make lint" in readme and "make test" in readme and "make build" in readme,
             "README must document the standard local verification gates",
             failures)
@@ -277,6 +289,9 @@ def main():
             failures)
     require("latest location update" in changes.lower(),
             "CHANGES must record latest location update selection",
+            failures)
+    require("reverse-geocode fallback" in changes.lower(),
+            "CHANGES must record reverse-geocode fallback descriptions",
             failures)
     require("location manager delegate setup" in changes.lower(),
             "CHANGES must record location manager delegate setup hardening",
@@ -310,6 +325,9 @@ def main():
             failures)
     require("status: completed" in latest_location_plan,
             "latest location update selection plan must be marked completed",
+            failures)
+    require("status: completed" in reverse_geocode_plan,
+            "reverse-geocode fallback plan must be marked completed",
             failures)
 
     if failures:

@@ -65,10 +65,8 @@ extension AppDelegate: CLLocationManagerDelegate {
     
     // Get location description
     AppDelegate.geoCoder.reverseGeocodeLocation(clLocation) { placemarks, _ in
-      if let place = placemarks?.first {
-        let description = "\(place)"
-        self.newVisitReceived(visit, description: description)
-      }
+      let description = placemarks?.first.map { "\($0)" } ?? "Saved location"
+      self.newVisitReceived(visit, description: description)
     }
   }
   
@@ -93,12 +91,11 @@ extension AppDelegate: CLLocationManagerDelegate {
     }
     
     AppDelegate.geoCoder.reverseGeocodeLocation(location) { placemarks, _ in
-      if let place = placemarks?.first {
-        let description = "Fake visit: \(place)"
-        
-        let fakeVisit = FakeVisit(coordinates: location.coordinate, arrivalDate: Date(), departureDate: Date())
-        self.newVisitReceived(fakeVisit, description: description)
-      }
+      let placeDescription = placemarks?.first.map { "\($0)" } ?? "Saved location"
+      let description = "Fake visit: \(placeDescription)"
+
+      let fakeVisit = FakeVisit(coordinates: location.coordinate, arrivalDate: Date(), departureDate: Date())
+      self.newVisitReceived(fakeVisit, description: description)
     }
   }
 }

@@ -98,10 +98,9 @@ class LocationsStorage {
   func saveCLLocationToDisk(_ clLocation: CLLocation) {
     let currentDate = Date()
     AppDelegate.geoCoder.reverseGeocodeLocation(clLocation) { placemarks, _ in
-      if let place = placemarks?.first {
-        let location = Location(clLocation.coordinate, date: currentDate, descriptionString: "\(place)")
-        self.saveLocationOnDisk(location)
-      }
+      let description = placemarks?.first.map { "\($0)" } ?? "Saved location"
+      let location = Location(clLocation.coordinate, date: currentDate, descriptionString: description)
+      self.saveLocationOnDisk(location)
     }
   }
 

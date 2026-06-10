@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-10
+
+- Added reverse-geocode fallback descriptions so local location saves still
+  complete when the geocoder returns no placemark.
+
 ## 2026-06-09
 
 - Added local `make lint`, `make test`, and `make build` gate aliases for the

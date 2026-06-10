@@ -60,10 +60,12 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - The places table uses a table index guard before reading saved locations during cell rendering.
 - Startup loading uses a saved-location JSON file filter before decoding local app documents.
 - Visit notifications use a redacted notification body so precise place descriptions stay inside the app.
+- Reverse-geocode fallback descriptions keep local location saves working when
+  the geocoder returns no placemark.
 
 ## Testing and Verification
 
-- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, location manager delegate setup, latest location update selection, main-thread notification delivery, redacted notification body handling, places table index guard handling, saved-location JSON file filter handling, local-only privacy docs, and generated-file ignores.
+- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, location manager delegate setup, latest location update selection, reverse-geocode fallback descriptions, main-thread notification delivery, redacted notification body handling, places table index guard handling, saved-location JSON file filter handling, local-only privacy docs, and generated-file ignores.
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline so the standard local gate commands stay available while preserving
   the single source of truth for non-Xcode verification.

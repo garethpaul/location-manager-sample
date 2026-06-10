@@ -37,6 +37,8 @@ Helpful reports include:
 - Views that observe saved-location notifications should remove those notification observers when deallocated.
 - Saved-location publishing should keep main-thread notification delivery because notification observers update UIKit and MapKit state.
 - Local visit notifications should use a redacted notification body rather than exposing precise place descriptions outside the app.
+- Reverse-geocode fallback descriptions should keep local location saves
+  available without requiring a precise placemark.
 - The places table index guard should remain before reading saved locations because notification-driven updates can change storage between row counting and cell rendering.
 - Generated Finder metadata, Xcode `xcuserdata`, `.xcuserstate`, local `.xcconfig`, private GPX traces, and exported location histories must stay out of git.
 - No primary dependency manifest was detected in the repository root. If dependencies are added later, include a manifest and prefer reproducible installation instructions.
@@ -53,6 +55,8 @@ location history.
 Saved-location main-thread notification delivery should remain in place before
 UIKit or MapKit observers update. The redacted notification body should keep
 precise place descriptions inside the app UI rather than lock-screen alerts.
+Reverse-geocode fallback descriptions should keep local saves available when
+geocoding cannot resolve a placemark.
 
 ## Dependency and Supply Chain Security
 
