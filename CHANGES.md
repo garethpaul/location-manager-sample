@@ -2,6 +2,8 @@
 
 ## 2026-06-10
 
+- Added pinned, read-only macOS hosted validation for `make check` and
+  `Journal.xcodeproj` parsing without location or saved-data access.
 - Added reverse-geocode fallback descriptions so local location saves still
   complete when the geocoder returns no placemark.
 

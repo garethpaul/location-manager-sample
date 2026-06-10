@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import plistlib
+import shutil
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -69,6 +70,7 @@ def main():
     failures = []
     required_files = [
         ".gitignore",
+        ".github/workflows/check.yml",
         "CHANGES.md",
         "Makefile",
         "README.md",
@@ -85,6 +87,7 @@ def main():
         "docs/plans/2026-06-09-redacted-location-notification.md",
         "docs/plans/2026-06-09-latest-location-update-selection.md",
         "docs/plans/2026-06-10-reverse-geocode-fallback-description.md",
+        "docs/plans/2026-06-10-hosted-project-validation.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -153,6 +156,8 @@ def main():
     redacted_notification_plan = read("docs/plans/2026-06-09-redacted-location-notification.md")
     latest_location_plan = LATEST_LOCATION_PLAN.read_text(encoding="utf-8") if LATEST_LOCATION_PLAN.exists() else ""
     reverse_geocode_plan = read("docs/plans/2026-06-10-reverse-geocode-fallback-description.md")
+    hosted_validation_plan = read("docs/plans/2026-06-10-hosted-project-validation.md")
+    workflow = read(".github/workflows/check.yml")
     tracked = git_ls_files()
 
     require(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
@@ -329,6 +334,28 @@ def main():
     require("status: completed" in reverse_geocode_plan,
             "reverse-geocode fallback plan must be marked completed",
             failures)
+    require("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
+            "hosted project validation plan must be marked completed",
+            failures)
+    require("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
+            "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
+            "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and
+            "run: make check" in workflow,
+            "Check workflow must stay pinned, read-only, and bounded",
+            failures)
+
+    if shutil.which("xcodebuild"):
+        result = subprocess.run(
+            ["xcodebuild", "-list", "-project", "Journal.xcodeproj"],
+            cwd=ROOT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        require(result.returncode == 0,
+                "xcodebuild could not parse Journal.xcodeproj: " + result.stderr.strip(), failures)
+    else:
+        print("xcodebuild unavailable; static iOS baseline only.")
 
     if failures:
         for failure in failures:
