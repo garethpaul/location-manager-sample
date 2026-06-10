@@ -88,6 +88,7 @@ def main():
         "docs/plans/2026-06-09-latest-location-update-selection.md",
         "docs/plans/2026-06-10-reverse-geocode-fallback-description.md",
         "docs/plans/2026-06-10-hosted-project-validation.md",
+        "docs/plans/2026-06-10-bounded-location-loads.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -157,6 +158,7 @@ def main():
     latest_location_plan = LATEST_LOCATION_PLAN.read_text(encoding="utf-8") if LATEST_LOCATION_PLAN.exists() else ""
     reverse_geocode_plan = read("docs/plans/2026-06-10-reverse-geocode-fallback-description.md")
     hosted_validation_plan = read("docs/plans/2026-06-10-hosted-project-validation.md")
+    bounded_loads_plan = read("docs/plans/2026-06-10-bounded-location-loads.md")
     workflow = read(".github/workflows/check.yml")
     tracked = git_ls_files()
 
@@ -214,6 +216,18 @@ def main():
             failures)
     require('url.pathExtension.lowercased() == "json"' in storage,
             "LocationsStorage must filter persisted location loads to JSON files",
+            failures)
+    resource_values_index = storage.find("url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])")
+    data_read_index = storage.find("Data(contentsOf: url)")
+    require("maximumLocationFileSize = 64 * 1024" in storage and
+            resource_values_index >= 0 and
+            "resourceValues.isRegularFile == true" in storage and
+            "fileSize <= LocationsStorage.maximumLocationFileSize" in storage and
+            data_read_index > resource_values_index,
+            "LocationsStorage must reject non-regular or oversized JSON files before reading them",
+            failures)
+    require("CLLocationCoordinate2DIsValid(location.coordinates)" in storage,
+            "LocationsStorage must reject persisted locations with invalid coordinates",
             failures)
     require("try!" not in storage,
             "LocationsStorage must not force-unwrap file-system or JSON operations",
@@ -336,6 +350,10 @@ def main():
             failures)
     require("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
             "hosted project validation plan must be marked completed",
+            failures)
+    require("status: completed" in bounded_loads_plan and "64 KiB" in bounded_loads_plan and
+            "CLLocationCoordinate2DIsValid" in bounded_loads_plan,
+            "bounded location loads plan must be completed and document its guardrails",
             failures)
     require("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
             "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and

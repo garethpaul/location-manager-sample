@@ -2,6 +2,8 @@
 
 ## 2026-06-10
 
+- Bounded saved-location loading to regular JSON files up to 64 KiB and
+  rejected decoded locations with invalid coordinates.
 - Added pinned, read-only macOS hosted validation for `make check` and
   `Journal.xcodeproj` parsing without location or saved-data access.
 - Added reverse-geocode fallback descriptions so local location saves still
