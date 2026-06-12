@@ -1,6 +1,6 @@
 # Bounded Location File Count
 
-status: planned
+status: completed
 
 ## Context
 
