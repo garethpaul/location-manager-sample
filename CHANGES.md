@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-12
+
+- Stopped the hosted checkout from persisting its credential and added an exact
+  static contract for the sole workflow and checkout step.
+
 ## 2026-06-10
 
 - Bounded saved-location loading to regular JSON files up to 64 KiB and
