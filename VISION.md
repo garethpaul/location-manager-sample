@@ -36,8 +36,8 @@ Priority:
 - Keep the places table index guard before reading saved locations
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates
-- Keep hosted project validation pinned and read-only on macOS through
-  `Journal.xcodeproj` parsing and `make check`
+- Keep hosted project validation pinned, read-only, and credential-free on
+  macOS through `Journal.xcodeproj` parsing and `make check`
 - Keep generated Finder and Xcode user-state metadata out of git
 - Avoid uploading or logging user location history
 - Preserve license comments and attribution in source files

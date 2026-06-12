@@ -12,6 +12,8 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "docs/plans/2026-06-08-location-storage-baseline.md"
 LATEST_LOCATION_PLAN = ROOT / "docs/plans/2026-06-09-latest-location-update-selection.md"
+CHECKOUT_CREDENTIAL_PLAN = ROOT / "docs/plans/2026-06-12-checkout-credential-boundary.md"
+CHECKOUT_ACTION = "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
@@ -98,6 +100,7 @@ def main():
         "docs/plans/2026-06-10-reverse-geocode-fallback-description.md",
         "docs/plans/2026-06-10-hosted-project-validation.md",
         "docs/plans/2026-06-10-bounded-location-loads.md",
+        "docs/plans/2026-06-12-checkout-credential-boundary.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -168,7 +171,16 @@ def main():
     reverse_geocode_plan = read("docs/plans/2026-06-10-reverse-geocode-fallback-description.md")
     hosted_validation_plan = read("docs/plans/2026-06-10-hosted-project-validation.md")
     bounded_loads_plan = read("docs/plans/2026-06-10-bounded-location-loads.md")
+    checkout_credential_plan = (
+        CHECKOUT_CREDENTIAL_PLAN.read_text(encoding="utf-8")
+        if CHECKOUT_CREDENTIAL_PLAN.exists()
+        else ""
+    )
     workflow = read(".github/workflows/check.yml")
+    workflow_files = [
+        *sorted((ROOT / ".github/workflows").glob("*.yml")),
+        *sorted((ROOT / ".github/workflows").glob("*.yaml")),
+    ]
     tracked = git_ls_files()
 
     require(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
@@ -391,9 +403,47 @@ def main():
                 failures)
     require("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
             "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
-            "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and
+            CHECKOUT_ACTION in workflow and
             "run: make check" in workflow,
             "Check workflow must stay pinned, read-only, and bounded",
+            failures)
+    checkout_blocks = re.findall(
+        rf"(?m)^(?P<indent> *)- +uses: +{re.escape(CHECKOUT_ACTION)}[^\n]*\n"
+        rf"(?P=indent)  with:\n"
+        rf"(?P=indent)    persist-credentials: +false *$",
+        workflow,
+    )
+    checkout_actions = re.findall(
+        r"(?m)^\s*-\s+uses:\s+actions/checkout@",
+        workflow,
+    )
+    require(len(workflow_files) == 1 and
+            workflow.count("permissions:") == 1 and
+            workflow.count("contents: read") == 1 and
+            not re.search(r"(?m)^\s*[A-Za-z-]+:\s*write\s*$", workflow) and
+            len(checkout_actions) == 1 and
+            workflow.count(CHECKOUT_ACTION) == 1 and
+            len(checkout_blocks) == 1 and
+            workflow.count("persist-credentials: false") == 1 and
+            "persist-credentials: true" not in workflow,
+            "Check workflow must keep one read-only permission block and one pinned, credential-free checkout",
+            failures)
+    checkout_plan_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$",
+        checkout_credential_plan,
+    )
+    checkout_plan_work = markdown_section(
+        checkout_credential_plan,
+        "Work Completed",
+    )
+    checkout_plan_verification = markdown_section(
+        checkout_credential_plan,
+        "Verification Completed",
+    )
+    require(checkout_plan_status == ["completed"] and
+            checkout_plan_work and
+            "make check" in checkout_plan_verification,
+            "checkout credential boundary plan must record one completed status, completed work, and make check verification",
             failures)
 
     if shutil.which("xcodebuild"):
