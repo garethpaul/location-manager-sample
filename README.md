@@ -59,18 +59,23 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   batches.
 - The places table uses a table index guard before reading saved locations during cell rendering.
 - Startup loading uses a saved-location JSON file filter before decoding local app documents.
+- Startup loading accepts only regular JSON files up to 64 KiB and rejects
+  decoded locations with invalid coordinates.
 - Visit notifications use a redacted notification body so precise place descriptions stay inside the app.
 - Reverse-geocode fallback descriptions keep local location saves working when
   the geocoder returns no placemark.
 
 ## Testing and Verification
 
-- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, location-storage guardrails, notification observer lifecycle cleanup, location manager delegate setup, latest location update selection, reverse-geocode fallback descriptions, main-thread notification delivery, redacted notification body handling, places table index guard handling, saved-location JSON file filter handling, local-only privacy docs, and generated-file ignores.
+- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, bounded location-file loading, coordinate validation, notification observer lifecycle cleanup, location manager delegate setup, latest location update selection, reverse-geocode fallback descriptions, main-thread notification delivery, redacted notification body handling, places table index guard handling, local-only privacy docs, and generated-file ignores.
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline so the standard local gate commands stay available while preserving
   the single source of truth for non-Xcode verification.
-- GitHub Actions runs `make check` through `.github/workflows/check.yml` on
-  pushes, pull requests, and manual dispatches.
+- Pinned, credential-free, read-only `macos-15` GitHub Actions runs
+  `make check` and parses
+  `Journal.xcodeproj` with `xcodebuild -list`. This hosted validation does not
+  request location, inspect saved location JSON, play the GPX route, build or
+  sign the app, launch a simulator, or exercise UI flows.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -87,6 +92,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - Location persistence should remain local-only unless a future change includes explicit privacy design, retention notes, and security review.
 - `LocationsStorage` should not force-unwrap document-directory, JSON, or file-write operations because location history is privacy-sensitive and should fail closed on storage errors.
 - `LocationsStorage` should keep the saved-location JSON file filter before decoding files from local app documents.
+- `LocationsStorage` should reject non-regular files, JSON files larger than 64
+  KiB, and decoded locations with invalid coordinates before publishing them.
 - Notification observer cleanup should stay paired with saved-location observer registration in map and places views.
 - Saved-location notifications should continue to publish on the main thread because observers update UIKit and MapKit.
 - Review changes touching file, media, JSON, XML, CSV, OCR, or data parsing; examples from the scan include Journal/Info.plist, Journal.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist, Journal.xcodeproj/xcshareddata/IDETemplateMacros.plist, Journal.xcodeproj/xcuserdata/gpj.xcuserdatad/xcschemes/xcschememanagement.plist.
@@ -98,7 +105,11 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 - See `docs/plans/2026-06-09-make-gate-aliases.md` for the local gate alias guardrail.
-- See `docs/plans/2026-06-10-ci-baseline.md` for the GitHub Actions baseline.
+- See `docs/plans/2026-06-10-ci-baseline.md` and
+  `docs/plans/2026-06-10-hosted-project-validation.md` for the GitHub Actions
+  baseline and macOS project-parsing boundary.
+- See `docs/plans/2026-06-10-bounded-location-loads.md` for the persisted-file
+  and coordinate-validation guardrails.
 
 ## Contributing
 

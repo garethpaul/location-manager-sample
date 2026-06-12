@@ -2,6 +2,8 @@
 from pathlib import Path
 import json
 import plistlib
+import re
+import shutil
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -70,12 +72,12 @@ def main():
     failures = []
     required_files = [
         ".gitignore",
+        ".github/workflows/check.yml",
         "CHANGES.md",
         "Makefile",
         "README.md",
         "SECURITY.md",
         "VISION.md",
-        ".github/workflows/check.yml",
         "Route.gpx",
         "docs/plans/2026-06-08-location-storage-baseline.md",
         "docs/plans/2026-06-08-location-manager-delegate-setup.md",
@@ -88,6 +90,8 @@ def main():
         "docs/plans/2026-06-09-latest-location-update-selection.md",
         "docs/plans/2026-06-10-reverse-geocode-fallback-description.md",
         "docs/plans/2026-06-10-ci-baseline.md",
+        "docs/plans/2026-06-10-hosted-project-validation.md",
+        "docs/plans/2026-06-10-bounded-location-loads.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -158,6 +162,8 @@ def main():
     latest_location_plan = LATEST_LOCATION_PLAN.read_text(encoding="utf-8") if LATEST_LOCATION_PLAN.exists() else ""
     reverse_geocode_plan = read("docs/plans/2026-06-10-reverse-geocode-fallback-description.md")
     ci_plan = CI_PLAN.read_text(encoding="utf-8") if CI_PLAN.exists() else ""
+    hosted_validation_plan = read("docs/plans/2026-06-10-hosted-project-validation.md")
+    bounded_loads_plan = read("docs/plans/2026-06-10-bounded-location-loads.md")
     tracked = git_ls_files()
 
     require(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
@@ -214,6 +220,18 @@ def main():
             failures)
     require('url.pathExtension.lowercased() == "json"' in storage,
             "LocationsStorage must filter persisted location loads to JSON files",
+            failures)
+    resource_values_index = storage.find("url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])")
+    data_read_index = storage.find("Data(contentsOf: url)")
+    require("maximumLocationFileSize = 64 * 1024" in storage and
+            resource_values_index >= 0 and
+            "resourceValues.isRegularFile == true" in storage and
+            "fileSize <= LocationsStorage.maximumLocationFileSize" in storage and
+            data_read_index > resource_values_index,
+            "LocationsStorage must reject non-regular or oversized JSON files before reading them",
+            failures)
+    require("CLLocationCoordinate2DIsValid(location.coordinates)" in storage,
+            "LocationsStorage must reject persisted locations with invalid coordinates",
             failures)
     require("try!" not in storage,
             "LocationsStorage must not force-unwrap file-system or JSON operations",
@@ -340,12 +358,49 @@ def main():
     require("status: completed" in reverse_geocode_plan,
             "reverse-geocode fallback plan must be marked completed",
             failures)
-    require("uses: actions/checkout@v4" in workflow and "uses: actions/setup-python@v5" in workflow and "run: make check" in workflow,
-            "GitHub Actions workflow must set up Python and run make check",
-            failures)
     require("Status: Completed" in ci_plan and "make check" in ci_plan,
             "CI baseline plan must record completed status and make check verification",
             failures)
+    require("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
+            "hosted project validation plan must be marked completed",
+            failures)
+    require("status: completed" in bounded_loads_plan and "64 KiB" in bounded_loads_plan and
+            "CLLocationCoordinate2DIsValid" in bounded_loads_plan,
+            "bounded location loads plan must be completed and document its guardrails",
+            failures)
+    checkout_step = re.search(
+        r"(?m)^      - name: Check out repository\n"
+        r"        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6\.0\.3\n"
+        r"        with:\n"
+        r"          persist-credentials: false\n",
+        workflow,
+    )
+    actions = re.findall(r"(?m)^\s*(?:-\s*)?uses:\s*(\S+)(?:\s+#.*)?$", workflow)
+    require(checkout_step is not None and
+            actions == ["actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10"] and
+            workflow.count("persist-credentials:") == 1 and
+            workflow.count("permissions:") == 1 and
+            re.search(r"(?m)^\s+[A-Za-z-]+:\s+write\s*$", workflow) is None and
+            "permissions:\n  contents: read" in workflow and
+            "cancel-in-progress: true" in workflow and
+            "runs-on: macos-15" in workflow and
+            "timeout-minutes: 10" in workflow and
+            "run: make check" in workflow,
+            "Check workflow contract must use only pinned checkout with singular, credential-free, read-only, bounded configuration",
+            failures)
+
+    if shutil.which("xcodebuild"):
+        result = subprocess.run(
+            ["xcodebuild", "-list", "-project", "Journal.xcodeproj"],
+            cwd=ROOT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        require(result.returncode == 0,
+                "xcodebuild could not parse Journal.xcodeproj: " + result.stderr.strip(), failures)
+    else:
+        print("xcodebuild unavailable; static iOS baseline only.")
 
     if failures:
         for failure in failures:

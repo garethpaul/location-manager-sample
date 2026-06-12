@@ -21,8 +21,8 @@
 
 ## Coding conventions
 
-- Language mix noted in the README: Swift (5).
-- Preserve legacy Xcode project settings and signing assumptions unless the change is explicitly about modernization.
+- Language mix: Swift 4.2, Python 3, GitHub Actions YAML, and Markdown.
+- Preserve the iOS 12 deployment target, Swift 4.2 project settings, and unsigned project-parsing assumptions unless the change is explicitly about modernization.
 
 ## Testing guidance
 
@@ -44,6 +44,7 @@
 - Location persistence should remain local-only unless a future change includes explicit privacy design, retention notes, and security review.
 - `LocationsStorage` should not force-unwrap document-directory, JSON, or file-write operations because location history is privacy-sensitive and should fail closed on storage errors.
 - `LocationsStorage` should keep the saved-location JSON file filter before decoding files from local app documents.
+- Keep regular-file, 64 KiB size, and valid-coordinate checks ahead of publishing decoded saved locations.
 - Notification observer cleanup should stay paired with saved-location observer registration in map and places views.
 
 ## Agent workflow

@@ -31,6 +31,7 @@ import CoreLocation
 
 class LocationsStorage {
   static let shared = LocationsStorage()
+  private static let maximumLocationFileSize = 64 * 1024
   
   private(set) var locations: [Location]
   private let fileManager: FileManager
@@ -55,10 +56,20 @@ class LocationsStorage {
       guard url.lastPathComponent != ".DS_Store" else {
         return nil
       }
+      guard let resourceValues = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
+            resourceValues.isRegularFile == true,
+            let fileSize = resourceValues.fileSize,
+            fileSize <= LocationsStorage.maximumLocationFileSize else {
+        return nil
+      }
       guard let data = try? Data(contentsOf: url) else {
         return nil
       }
-      return try? jsonDecoder.decode(Location.self, from: data)
+      guard let location = try? jsonDecoder.decode(Location.self, from: data),
+            CLLocationCoordinate2DIsValid(location.coordinates) else {
+        return nil
+      }
+      return location
     }.sorted(by: { $0.date < $1.date })
   }
   

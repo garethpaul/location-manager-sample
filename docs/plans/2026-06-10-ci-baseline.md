@@ -12,14 +12,18 @@ checked before review.
 ## Objectives
 
 - Run the existing `make check` wrapper in GitHub Actions.
-- Keep the hosted job independent of Xcode, simulator, and location services.
+- Keep the hosted job independent of simulator, signing, route playback, saved
+  location data, and location services.
 - Make the workflow presence part of the static baseline contract.
 
 ## Work Completed
 
-- Added `.github/workflows/check.yml` to run `make check` on pushes, pull
-  requests, and manual dispatches.
-- Set up Python 3.12 for the static checker.
+- Added `.github/workflows/check.yml` to run `make check` on a bounded macOS 15
+  job for pushes, pull requests, and manual dispatches.
+- Added pinned, credential-free checkout, read-only permissions, and concurrency
+  cancellation.
+- Added `xcodebuild -list` project parsing when Xcode is available without
+  building, signing, launching a simulator, or accessing location data.
 - Extended `scripts/check-baseline.py` to require the CI workflow and this
   completed plan.
 - Updated README, VISION, SECURITY, and CHANGES with the CI baseline.
@@ -28,9 +32,10 @@ checked before review.
 
 - `make check`
 - `python3 scripts/check-baseline.py`
+- `python3 -m py_compile scripts/check-baseline.py`
 - `git diff --check`
 
 ## Follow-Up Candidates
 
-- Add a macOS/Xcode build or simulator route smoke job once the supported Xcode
-  and route-test baseline are documented.
+- Add a simulator route smoke job only after the supported Xcode, privacy, and
+  route-test boundaries are documented.

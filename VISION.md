@@ -25,6 +25,8 @@ Priority:
 - Keep route fixture and security policy aligned with the sample
 - Keep location storage local-only and resilient to file-system/JSON failures
 - Keep saved-location JSON file filter handling before decoding local documents
+- Keep saved-location loads limited to regular JSON files up to 64 KiB and
+  reject decoded invalid coordinates
 - Keep location manager delegate setup ahead of authorization and visit monitoring
 - Keep fake visit simulation using the latest location update from CoreLocation batches
 - Preserve reverse-geocode fallback descriptions when a placemark is unavailable
@@ -34,7 +36,8 @@ Priority:
 - Keep the places table index guard before reading saved locations
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates
-- Keep GitHub Actions running the static `make check` baseline before review
+- Keep GitHub Actions project validation pinned, credential-free, and read-only
+  on macOS through `Journal.xcodeproj` parsing and `make check`
 - Keep generated Finder and Xcode user-state metadata out of git
 - Avoid uploading or logging user location history
 - Preserve license comments and attribution in source files
@@ -54,8 +57,8 @@ Contribution rules:
 - Verify behavior with a simulator route or physical device when changing
   location logic.
 - Keep generated signing files and private route data out of git.
-- Keep `.github/workflows/check.yml` aligned with the static location baseline
-  until a macOS/Xcode route job is documented.
+- Keep `.github/workflows/check.yml` aligned with the credential-free hosted
+  location baseline until a simulator route job is documented.
 - Document any change that transmits or stores location data differently.
 - Preserve notification observer lifecycle cleanup when changing map or places views.
 
@@ -69,7 +72,9 @@ Location history is sensitive. The app should remain local-first, avoid logging
 precise locations, and make any retention, export, or sync behavior explicit.
 Storage failures should fail closed rather than crashing or exposing location
 history in logs, and saved-location JSON file filter handling should keep
-unrelated local documents out of the decode path. Saved-location notification observer cleanup and main-thread
+unrelated local documents out of the decode path. Regular-file, 64 KiB size,
+and coordinate-validity checks should bound persisted input before it reaches
+the UI. Saved-location notification observer cleanup and main-thread
 notification delivery should remain explicit for views that subscribe to local
 storage changes. The redacted notification body should avoid showing precise
 place descriptions outside the app.

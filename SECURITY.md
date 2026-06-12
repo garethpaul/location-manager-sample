@@ -29,9 +29,14 @@ Helpful reports include:
 - Review found mobile permission or privacy-sensitive data handling; changes in those areas should receive security-focused review before merge.
 - Review found file, document, data, or media parsing flows; changes in those areas should receive security-focused review before merge.
 - `make check` runs `scripts/check-baseline.py` to verify local location-storage guardrails, generated-file ignores, project metadata, assets, plists, storyboards, and privacy documentation.
-- GitHub Actions runs the static `make check` baseline before review.
+- The pinned, credential-free, read-only macOS GitHub Actions workflow only
+  parses project metadata and static resources; it does not request location,
+  inspect saved location JSON, play the GPX route, build or sign the app,
+  launch a simulator, or exercise UI flows.
 - Saved location history should remain local app documents data. Changes that export, upload, sync, log, or broaden retention of locations need explicit privacy review.
 - Saved-location JSON file filter handling should stay before decoding local app documents so unrelated files are ignored.
+- Saved-location loading should accept only regular JSON files up to 64 KiB and
+  reject invalid coordinates before decoded data reaches the UI.
 - Location manager delegate setup should happen before authorization and visit monitoring so visit callbacks are handled by the app delegate.
 - Fake visit simulation should use the latest location update from CoreLocation
   batches instead of an older sample.
