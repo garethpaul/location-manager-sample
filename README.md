@@ -71,7 +71,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline so the standard local gate commands stay available while preserving
   the single source of truth for non-Xcode verification.
-- Pinned `macos-15` GitHub Actions runs `make check` and parses
+- Pinned, credential-free, read-only `macos-15` GitHub Actions runs
+  `make check` and parses
   `Journal.xcodeproj` with `xcodebuild -list`. This hosted validation does not
   request location, inspect saved location JSON, play the GPX route, build or
   sign the app, launch a simulator, or exercise UI flows.
@@ -104,6 +105,11 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 - See `docs/plans/2026-06-09-make-gate-aliases.md` for the local gate alias guardrail.
+- See `docs/plans/2026-06-10-ci-baseline.md` and
+  `docs/plans/2026-06-10-hosted-project-validation.md` for the GitHub Actions
+  baseline and macOS project-parsing boundary.
+- See `docs/plans/2026-06-10-bounded-location-loads.md` for the persisted-file
+  and coordinate-validation guardrails.
 
 ## Contributing
 

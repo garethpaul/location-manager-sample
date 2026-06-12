@@ -36,8 +36,8 @@ Priority:
 - Keep the places table index guard before reading saved locations
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates
-- Keep hosted project validation pinned and read-only on macOS through
-  `Journal.xcodeproj` parsing and `make check`
+- Keep GitHub Actions project validation pinned, credential-free, and read-only
+  on macOS through `Journal.xcodeproj` parsing and `make check`
 - Keep generated Finder and Xcode user-state metadata out of git
 - Avoid uploading or logging user location history
 - Preserve license comments and attribution in source files
@@ -57,6 +57,8 @@ Contribution rules:
 - Verify behavior with a simulator route or physical device when changing
   location logic.
 - Keep generated signing files and private route data out of git.
+- Keep `.github/workflows/check.yml` aligned with the credential-free hosted
+  location baseline until a simulator route job is documented.
 - Document any change that transmits or stores location data differently.
 - Preserve notification observer lifecycle cleanup when changing map or places views.
 

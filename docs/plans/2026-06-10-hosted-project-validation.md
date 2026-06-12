@@ -27,9 +27,9 @@ Files:
 - `scripts/check-baseline.py`
 
 Add push, pull-request, and manual triggers; read-only permissions; concurrency
-cancellation; a bounded `macos-15` job; commit-pinned checkout; and `make check`.
-Require those properties and run `xcodebuild -list -project Journal.xcodeproj`
-when Xcode exists.
+cancellation; a bounded `macos-15` job; commit-pinned, credential-free checkout;
+and `make check`. Require those properties structurally and run
+`xcodebuild -list -project Journal.xcodeproj` when Xcode exists.
 
 ### Documentation
 
