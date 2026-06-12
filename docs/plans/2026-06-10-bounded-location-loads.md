@@ -16,14 +16,23 @@ outside Core Location's valid coordinate range.
 - Preserve corrupted-file skipping, chronological sorting, and atomic writes.
 - Add static and mutation guardrails without accessing user location data in CI.
 
-## Verification
+## Verification Completed
 
-- `make lint`
-- `make test`
-- `make build`
-- `make check`
-- mutation checks for file-size and coordinate validation
-- `git diff --check`
+- Local `make check`, `make lint`, `make test`, and `make build` passed. The
+  local environment did not provide `xcodebuild`, so these runs exercised the
+  complete static baseline and reported the hosted Xcode requirement.
+- `python3 -m py_compile scripts/check-baseline.py` and `git diff --check`
+  passed.
+- Hostile mutations changing the plan status, inserting an unfinished-work
+  marker, falsifying a run ID, removing the 64 KiB limit, or removing coordinate
+  validation were rejected.
+- The main-branch push Check run `27287434242` completed successfully for
+  commit `6f9a8f1ec70fab6c08b5920c4cd3544dd0a59760`.
+- The CodeQL setup run `27402324815` completed successfully for commit
+  `6f9a8f1ec70fab6c08b5920c4cd3544dd0a59760`.
+- Loading preserves `resourceValues.isRegularFile == true`,
+  `fileSize <= LocationsStorage.maximumLocationFileSize`, and
+  `CLLocationCoordinate2DIsValid(location.coordinates)` before accepting data.
 
 ## Work Completed
 

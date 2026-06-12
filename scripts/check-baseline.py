@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import plistlib
+import re
 import shutil
 import subprocess
 import sys
@@ -21,6 +22,14 @@ def require(condition, message, failures):
 
 def read(relative_path):
     return (ROOT / relative_path).read_text(encoding="utf-8", errors="replace")
+
+
+def markdown_section(text, heading):
+    match = re.search(
+        rf"(?ms)^## {re.escape(heading)}\s*$\n(.*?)(?=^## |\Z)",
+        text,
+    )
+    return match.group(1).strip() if match else ""
 
 
 def parse_xml(relative_path, failures):
@@ -351,10 +360,35 @@ def main():
     require("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
             "hosted project validation plan must be marked completed",
             failures)
-    require("status: completed" in bounded_loads_plan and "64 KiB" in bounded_loads_plan and
-            "CLLocationCoordinate2DIsValid" in bounded_loads_plan,
-            "bounded location loads plan must be completed and document its guardrails",
+    bounded_loads_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", bounded_loads_plan)
+    bounded_loads_work = markdown_section(bounded_loads_plan, "Work Completed")
+    bounded_loads_verification = markdown_section(
+        bounded_loads_plan, "Verification Completed"
+    )
+    require(bounded_loads_status == ["completed"] and bounded_loads_work,
+            "bounded location loads plan must record one completed status and completed work",
             failures)
+    require(bounded_loads_verification and
+            not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", bounded_loads_verification),
+            "bounded location loads plan must record finished verification without pending markers",
+            failures)
+    for evidence in [
+        "make check",
+        "make lint",
+        "make test",
+        "make build",
+        "python3 -m py_compile scripts/check-baseline.py",
+        "git diff --check",
+        "27287434242",
+        "27402324815",
+        "6f9a8f1ec70fab6c08b5920c4cd3544dd0a59760",
+        "resourceValues.isRegularFile == true",
+        "fileSize <= LocationsStorage.maximumLocationFileSize",
+        "CLLocationCoordinate2DIsValid(location.coordinates)",
+    ]:
+        require(evidence in bounded_loads_verification,
+                f"bounded location loads plan must preserve verification evidence: {evidence}",
+                failures)
     require("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
             "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
             "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and
