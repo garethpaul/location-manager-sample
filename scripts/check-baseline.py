@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "docs/plans/2026-06-08-location-storage-baseline.md"
 LATEST_LOCATION_PLAN = ROOT / "docs/plans/2026-06-09-latest-location-update-selection.md"
+CI_PLAN = ROOT / "docs/plans/2026-06-10-ci-baseline.md"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
@@ -74,6 +75,7 @@ def main():
         "README.md",
         "SECURITY.md",
         "VISION.md",
+        ".github/workflows/check.yml",
         "Route.gpx",
         "docs/plans/2026-06-08-location-storage-baseline.md",
         "docs/plans/2026-06-08-location-manager-delegate-setup.md",
@@ -85,6 +87,7 @@ def main():
         "docs/plans/2026-06-09-redacted-location-notification.md",
         "docs/plans/2026-06-09-latest-location-update-selection.md",
         "docs/plans/2026-06-10-reverse-geocode-fallback-description.md",
+        "docs/plans/2026-06-10-ci-baseline.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -142,6 +145,7 @@ def main():
     changes = read("CHANGES.md")
     makefile = read("Makefile")
     gitignore = read(".gitignore")
+    workflow = read(".github/workflows/check.yml")
     plan = PLAN.read_text(encoding="utf-8") if PLAN.exists() else ""
     delegate_plan_path = ROOT / "docs/plans/2026-06-08-location-manager-delegate-setup.md"
     delegate_plan = delegate_plan_path.read_text(encoding="utf-8") if delegate_plan_path.exists() else ""
@@ -153,6 +157,7 @@ def main():
     redacted_notification_plan = read("docs/plans/2026-06-09-redacted-location-notification.md")
     latest_location_plan = LATEST_LOCATION_PLAN.read_text(encoding="utf-8") if LATEST_LOCATION_PLAN.exists() else ""
     reverse_geocode_plan = read("docs/plans/2026-06-10-reverse-geocode-fallback-description.md")
+    ci_plan = CI_PLAN.read_text(encoding="utf-8") if CI_PLAN.exists() else ""
     tracked = git_ls_files()
 
     require(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
@@ -275,6 +280,9 @@ def main():
         require("reverse-geocode fallback" in content.lower(),
                 f"{path} must document reverse-geocode fallback descriptions",
                 failures)
+        require("GitHub Actions" in content,
+                f"{path} must document the GitHub Actions baseline",
+                failures)
     require("make lint" in readme and "make test" in readme and "make build" in readme,
             "README must document the standard local verification gates",
             failures)
@@ -292,6 +300,9 @@ def main():
             failures)
     require("reverse-geocode fallback" in changes.lower(),
             "CHANGES must record reverse-geocode fallback descriptions",
+            failures)
+    require("GitHub Actions" in changes,
+            "CHANGES must record the GitHub Actions baseline",
             failures)
     require("location manager delegate setup" in changes.lower(),
             "CHANGES must record location manager delegate setup hardening",
@@ -328,6 +339,12 @@ def main():
             failures)
     require("status: completed" in reverse_geocode_plan,
             "reverse-geocode fallback plan must be marked completed",
+            failures)
+    require("uses: actions/checkout@v4" in workflow and "uses: actions/setup-python@v5" in workflow and "run: make check" in workflow,
+            "GitHub Actions workflow must set up Python and run make check",
+            failures)
+    require("Status: Completed" in ci_plan and "make check" in ci_plan,
+            "CI baseline plan must record completed status and make check verification",
             failures)
 
     if failures:

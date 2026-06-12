@@ -2,6 +2,10 @@
 
 ## 2026-06-10
 
+- Added a GitHub Actions check workflow that runs the existing static
+  `make check` baseline on pushes, pull requests, and manual dispatches.
+- Added a static guard requiring the CI workflow and completed CI baseline plan
+  to remain checked in.
 - Added reverse-geocode fallback descriptions so local location saves still
   complete when the geocoder returns no placemark.
 
