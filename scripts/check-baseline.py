@@ -89,6 +89,7 @@ def main():
         "docs/plans/2026-06-10-reverse-geocode-fallback-description.md",
         "docs/plans/2026-06-10-hosted-project-validation.md",
         "docs/plans/2026-06-10-bounded-location-loads.md",
+        "docs/plans/2026-06-12-bounded-location-file-count.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -159,6 +160,7 @@ def main():
     reverse_geocode_plan = read("docs/plans/2026-06-10-reverse-geocode-fallback-description.md")
     hosted_validation_plan = read("docs/plans/2026-06-10-hosted-project-validation.md")
     bounded_loads_plan = read("docs/plans/2026-06-10-bounded-location-loads.md")
+    bounded_count_plan = read("docs/plans/2026-06-12-bounded-location-file-count.md")
     workflow = read(".github/workflows/check.yml")
     tracked = git_ls_files()
 
@@ -218,7 +220,7 @@ def main():
             "LocationsStorage must filter persisted location loads to JSON files",
             failures)
     resource_values_index = storage.find("url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])")
-    data_read_index = storage.find("Data(contentsOf: url)")
+    data_read_index = storage.find("Data(contentsOf: candidate.url)")
     require("maximumLocationFileSize = 64 * 1024" in storage and
             resource_values_index >= 0 and
             "resourceValues.isRegularFile == true" in storage and
@@ -228,6 +230,13 @@ def main():
             failures)
     require("CLLocationCoordinate2DIsValid(location.coordinates)" in storage,
             "LocationsStorage must reject persisted locations with invalid coordinates",
+            failures)
+    require("maximumLocationFileCount = 1000" in storage and
+            "TimeInterval(url.deletingPathExtension().lastPathComponent)" in storage and
+            ".sorted(by: { $0.timestamp > $1.timestamp })" in storage and
+            ".prefix(LocationsStorage.maximumLocationFileCount)" in storage and
+            "Data(contentsOf: candidate.url)" in storage,
+            "LocationsStorage must bound decoded timestamp-named files and prefer the newest candidates",
             failures)
     require("try!" not in storage,
             "LocationsStorage must not force-unwrap file-system or JSON operations",
@@ -294,6 +303,9 @@ def main():
         require("reverse-geocode fallback" in content.lower(),
                 f"{path} must document reverse-geocode fallback descriptions",
                 failures)
+        require("1,000-file startup decode limit" in content,
+                f"{path} must document the bounded persisted location count",
+                failures)
     require("make lint" in readme and "make test" in readme and "make build" in readme,
             "README must document the standard local verification gates",
             failures)
@@ -354,6 +366,9 @@ def main():
     require("status: completed" in bounded_loads_plan and "64 KiB" in bounded_loads_plan and
             "CLLocationCoordinate2DIsValid" in bounded_loads_plan,
             "bounded location loads plan must be completed and document its guardrails",
+            failures)
+    require("status: completed" in bounded_count_plan and "hostile mutations" in bounded_count_plan,
+            "bounded location file count plan must record completed verification",
             failures)
     require("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
             "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and

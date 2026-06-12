@@ -36,6 +36,8 @@ Helpful reports include:
 - Saved-location JSON file filter handling should stay before decoding local app documents so unrelated files are ignored.
 - Saved-location loading should accept only regular JSON files up to 64 KiB and
   reject invalid coordinates before decoded data reaches the UI.
+- Saved-location loading should keep a 1,000-file startup decode limit on the
+  newest timestamp-named candidates without claiming to bound enumeration.
 - Location manager delegate setup should happen before authorization and visit monitoring so visit callbacks are handled by the app delegate.
 - Fake visit simulation should use the latest location update from CoreLocation
   batches instead of an older sample.

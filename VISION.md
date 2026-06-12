@@ -27,6 +27,7 @@ Priority:
 - Keep saved-location JSON file filter handling before decoding local documents
 - Keep saved-location loads limited to regular JSON files up to 64 KiB and
   reject decoded invalid coordinates
+- Keep a 1,000-file startup decode limit on the newest timestamp-named locations
 - Keep location manager delegate setup ahead of authorization and visit monitoring
 - Keep fake visit simulation using the latest location update from CoreLocation batches
 - Preserve reverse-geocode fallback descriptions when a placemark is unavailable

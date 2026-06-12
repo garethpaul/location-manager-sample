@@ -2,6 +2,8 @@
 
 ## 2026-06-10
 
+- Added a 1,000-file startup decode limit for the newest timestamp-named saved
+  locations while leaving older files on disk.
 - Bounded saved-location loading to regular JSON files up to 64 KiB and
   rejected decoded locations with invalid coordinates.
 - Added pinned, read-only macOS hosted validation for `make check` and
