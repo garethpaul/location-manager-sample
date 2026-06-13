@@ -70,6 +70,9 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 ## Testing and Verification
 
 - `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, bounded location-file loading, coordinate validation, notification observer lifecycle cleanup, location manager delegate setup, latest location update selection, reverse-geocode fallback descriptions, main-thread notification delivery, redacted notification body handling, places table index guard handling, local-only privacy docs, and generated-file ignores.
+- The Make gates are location-independent. From another directory, pass the
+  checkout's Makefile by absolute path, such as
+  `make -f /path/to/location-manager-sample/Makefile check`.
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline so the standard local gate commands stay available while preserving
   the single source of truth for non-Xcode verification.
@@ -104,6 +107,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 
 - This looks like an Apple platform project or sample. Xcode, Swift, CocoaPods, and deployment target versions may need to match the original project era.
 - Run `make lint`, `make test`, `make build`, and `make check` before pushing Swift, project, route fixture, asset, plist, storyboard, README, or security-policy changes.
+- Use an absolute Makefile path when running those gates outside the checkout.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 - See `docs/plans/2026-06-09-make-gate-aliases.md` for the local gate alias guardrail.
