@@ -15,6 +15,15 @@ LATEST_LOCATION_PLAN = ROOT / "docs/plans/2026-06-09-latest-location-update-sele
 CHECKOUT_CREDENTIAL_PLAN = ROOT / "docs/plans/2026-06-12-checkout-credential-boundary.md"
 CHECKOUT_ACTION = "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+EXPECTED_MAKEFILE = """ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
+.PHONY: build check lint test
+
+lint test build: check
+
+check:
+\tpython3 "$(ROOT)/scripts/check-baseline.py"
+"""
 
 
 def require(condition, message, failures):
@@ -102,6 +111,7 @@ def main():
         "docs/plans/2026-06-10-bounded-location-loads.md",
         "docs/plans/2026-06-12-checkout-credential-boundary.md",
         "docs/plans/2026-06-13-unique-location-filenames.md",
+        "docs/plans/2026-06-13-location-independent-make.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -178,6 +188,7 @@ def main():
         else ""
     )
     unique_filenames_plan = read("docs/plans/2026-06-13-unique-location-filenames.md")
+    location_independent_make_plan = read("docs/plans/2026-06-13-location-independent-make.md")
     workflow = read(".github/workflows/check.yml")
     workflow_files = [
         *sorted((ROOT / ".github/workflows").glob("*.yml")),
@@ -185,8 +196,11 @@ def main():
     ]
     tracked = git_ls_files()
 
-    require(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
-            "Makefile must expose lint, test, build, and check verification gates",
+    require(makefile == EXPECTED_MAKEFILE,
+            "Makefile must exactly preserve rooted lint, test, build, and check gates",
+            failures)
+    require("make -f /path/to/location-manager-sample/Makefile check" in readme,
+            "README must document location-independent Makefile invocation",
             failures)
 
     require("NSLocationAlwaysAndWhenInUseUsageDescription" in app_plist,
@@ -399,6 +413,11 @@ def main():
             all(evidence in unique_filenames_verification for evidence in unique_filenames_evidence) and
             not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", unique_filenames_verification),
             "unique location filenames plan must record completed status and actual verification",
+            failures)
+    require("status: completed" in location_independent_make_plan and
+            "root and external-directory" in location_independent_make_plan and
+            "five isolated hostile mutations" in location_independent_make_plan,
+            "location-independent Make plan must record completed root, external, and mutation verification",
             failures)
     bounded_loads_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", bounded_loads_plan)
     bounded_loads_work = markdown_section(bounded_loads_plan, "Work Completed")

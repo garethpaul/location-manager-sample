@@ -2,6 +2,8 @@
 
 ## 2026-06-13
 
+- Made every Make verification alias resolve the static checker from the
+  checkout, including absolute Makefile invocations elsewhere.
 - Added timestamp-prefixed unique JSON filenames for new location writes so
   equal timestamps cannot overwrite an earlier persisted record.
 
