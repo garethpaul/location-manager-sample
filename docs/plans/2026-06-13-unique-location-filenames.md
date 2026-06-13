@@ -1,6 +1,6 @@
 # Unique Location Filenames
 
-status: planned
+status: completed
 
 ## Problem
 
@@ -34,3 +34,21 @@ locations are appended to memory and announced to observers.
 - Renaming existing persisted files.
 - Changing location payloads, notification contents, geocoding, or retention.
 - Modernizing the legacy Swift/Xcode project.
+
+## Work Completed
+
+- Added a UUID component after the timestamp prefix for every new location
+  filename while preserving the `.json` extension.
+- Added static source, documentation, plan-completion, and mutation contracts.
+- Preserved atomic writes, bounded startup loading, coordinate validation,
+  chronological sorting, and post-write publishing.
+
+## Verification Completed
+
+- `make lint`, `make test`, `make build`, and `make check` completed; all four Make gates passed against the same working tree.
+- The four hostile mutations were rejected: uniqueness removal, extension
+  drift, stale plan status, and missing verification evidence.
+- `python3 -m py_compile scripts/check-baseline.py` and `git diff --check`
+  passed.
+- xcodebuild was unavailable on the Linux validation host.
+- No simulator, device, Core Location, or live filesystem runtime verification is claimed.

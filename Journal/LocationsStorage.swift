@@ -116,7 +116,7 @@ class LocationsStorage {
   }
 
   private func fileName(for location: Location) -> String {
-    return "\(location.date.timeIntervalSince1970).json"
+    return "\(location.date.timeIntervalSince1970)-\(UUID().uuidString).json"
   }
 }
 
