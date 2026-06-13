@@ -101,6 +101,7 @@ def main():
         "docs/plans/2026-06-10-hosted-project-validation.md",
         "docs/plans/2026-06-10-bounded-location-loads.md",
         "docs/plans/2026-06-12-checkout-credential-boundary.md",
+        "docs/plans/2026-06-13-unique-location-filenames.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -176,6 +177,7 @@ def main():
         if CHECKOUT_CREDENTIAL_PLAN.exists()
         else ""
     )
+    unique_filenames_plan = read("docs/plans/2026-06-13-unique-location-filenames.md")
     workflow = read(".github/workflows/check.yml")
     workflow_files = [
         *sorted((ROOT / ".github/workflows").glob("*.yml")),
@@ -234,6 +236,16 @@ def main():
             failures)
     require("fileName(for location: Location)" in storage and '.json"' in storage,
             "LocationsStorage must use explicit JSON filenames for new saves",
+            failures)
+    filename_helper = storage[
+        storage.find("private func fileName(for location: Location)"):
+        storage.find("}\n}", storage.find("private func fileName(for location: Location)"))
+    ]
+    require(filename_helper.count("location.date.timeIntervalSince1970") == 1 and
+            filename_helper.count("UUID().uuidString") == 1 and
+            filename_helper.count('.json"') == 1 and
+            'return "\\(location.date.timeIntervalSince1970).json"' not in filename_helper,
+            "LocationsStorage must give every new JSON location file a unique timestamp-prefixed name",
             failures)
     require('url.pathExtension.lowercased() == "json"' in storage,
             "LocationsStorage must filter persisted location loads to JSON files",
@@ -372,6 +384,22 @@ def main():
     require("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
             "hosted project validation plan must be marked completed",
             failures)
+    unique_filenames_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", unique_filenames_plan)
+    unique_filenames_verification = markdown_section(
+        unique_filenames_plan, "Verification Completed"
+    )
+    unique_filenames_evidence = [
+        "all four Make gates passed",
+        "four hostile mutations were rejected",
+        "xcodebuild was unavailable",
+        "No simulator, device, Core Location, or live filesystem runtime verification is claimed",
+    ]
+    require(unique_filenames_status == ["completed"] and
+            unique_filenames_verification and
+            all(evidence in unique_filenames_verification for evidence in unique_filenames_evidence) and
+            not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", unique_filenames_verification),
+            "unique location filenames plan must record completed status and actual verification",
+            failures)
     bounded_loads_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", bounded_loads_plan)
     bounded_loads_work = markdown_section(bounded_loads_plan, "Work Completed")
     bounded_loads_verification = markdown_section(
@@ -406,6 +434,12 @@ def main():
             CHECKOUT_ACTION in workflow and
             "run: make check" in workflow,
             "Check workflow must stay pinned, read-only, and bounded",
+            failures)
+    require("New location writes use timestamp-prefixed unique JSON filenames" in readme and
+            "New location writes should use timestamp-prefixed unique JSON filenames" in security and
+            "New location writes use timestamp-prefixed unique JSON filenames" in vision and
+            "Added timestamp-prefixed unique JSON filenames for new location writes" in changes,
+            "Project guidance must document unique persisted location filenames",
             failures)
     checkout_blocks = re.findall(
         rf"(?m)^(?P<indent> *)- +uses: +{re.escape(CHECKOUT_ACTION)}[^\n]*\n"

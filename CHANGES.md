@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-13
+
+- Added timestamp-prefixed unique JSON filenames for new location writes so
+  equal timestamps cannot overwrite an earlier persisted record.
+
 ## 2026-06-12
 
 - Stopped the hosted checkout from persisting its credential and added an exact

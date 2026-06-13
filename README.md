@@ -61,6 +61,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Startup loading uses a saved-location JSON file filter before decoding local app documents.
 - Startup loading accepts only regular JSON files up to 64 KiB and rejects
   decoded locations with invalid coordinates.
+- New location writes use timestamp-prefixed unique JSON filenames so equal
+  timestamps cannot replace an earlier persisted entry.
 - Visit notifications use a redacted notification body so precise place descriptions stay inside the app.
 - Reverse-geocode fallback descriptions keep local location saves working when
   the geocoder returns no placemark.

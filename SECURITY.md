@@ -63,6 +63,8 @@ UIKit or MapKit observers update. The redacted notification body should keep
 precise place descriptions inside the app UI rather than lock-screen alerts.
 Reverse-geocode fallback descriptions should keep local saves available when
 geocoding cannot resolve a placemark.
+New location writes should use timestamp-prefixed unique JSON filenames so
+equal timestamps cannot collapse separate local records.
 
 ## Dependency and Supply Chain Security
 
