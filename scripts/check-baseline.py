@@ -113,6 +113,7 @@ def main():
         "docs/plans/2026-06-13-unique-location-filenames.md",
         "docs/plans/2026-06-13-location-independent-make.md",
         "docs/plans/2026-06-14-chronological-location-publishing.md",
+        "docs/plans/2026-06-14-save-coordinate-validation.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -191,6 +192,7 @@ def main():
     unique_filenames_plan = read("docs/plans/2026-06-13-unique-location-filenames.md")
     location_independent_make_plan = read("docs/plans/2026-06-13-location-independent-make.md")
     chronological_publish_plan = read("docs/plans/2026-06-14-chronological-location-publishing.md")
+    save_coordinate_plan = read("docs/plans/2026-06-14-save-coordinate-validation.md")
     workflow = read(".github/workflows/check.yml")
     workflow_files = [
         *sorted((ROOT / ".github/workflows").glob("*.yml")),
@@ -277,6 +279,26 @@ def main():
             failures)
     require("CLLocationCoordinate2DIsValid(location.coordinates)" in storage,
             "LocationsStorage must reject persisted locations with invalid coordinates",
+            failures)
+    save_start = storage.find("func saveLocationOnDisk(_ location: Location)")
+    save_end = storage.find("\n  private func publishSavedLocation", save_start)
+    save_helper = storage[save_start:save_end]
+    save_coordinate_guard_index = save_helper.find(
+        "guard CLLocationCoordinate2DIsValid(location.coordinates) else"
+    )
+    encoder_index = save_helper.find("let encoder = JSONEncoder()")
+    file_url_index = save_helper.find("let fileURL = documentsURL.appendingPathComponent")
+    write_index = save_helper.find("try data.write(to: fileURL, options: .atomic)")
+    publish_index = save_helper.find("publishSavedLocation(location)")
+    require(save_start >= 0 and
+            save_end > save_start and
+            save_coordinate_guard_index >= 0 and
+            encoder_index > save_coordinate_guard_index and
+            file_url_index > save_coordinate_guard_index and
+            write_index > save_coordinate_guard_index and
+            publish_index > save_coordinate_guard_index and
+            save_helper.count("CLLocationCoordinate2DIsValid(location.coordinates)") == 1,
+            "LocationsStorage must reject invalid coordinates before save side effects",
             failures)
     require("try!" not in storage,
             "LocationsStorage must not force-unwrap file-system or JSON operations",
@@ -449,6 +471,21 @@ def main():
             not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", chronological_publish_verification),
             "chronological location publishing plan must record completed status and actual verification",
             failures)
+    save_coordinate_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", save_coordinate_plan
+    )
+    save_coordinate_verification = markdown_section(
+        save_coordinate_plan, "Verification Completed"
+    )
+    require(save_coordinate_status == ["completed"] and
+            save_coordinate_verification and
+            "All four Make gates passed" in save_coordinate_verification and
+            "external directory" in save_coordinate_verification and
+            "Six isolated hostile mutations were rejected" in save_coordinate_verification and
+            "`xcodebuild` is unavailable" in save_coordinate_verification and
+            not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", save_coordinate_verification),
+            "save coordinate validation plan must record completed status and actual verification",
+            failures)
     bounded_loads_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", bounded_loads_plan)
     bounded_loads_work = markdown_section(bounded_loads_plan, "Work Completed")
     bounded_loads_verification = markdown_section(
@@ -495,6 +532,12 @@ def main():
             "Keep successful in-memory saves ordered by date before notifying views" in vision and
             "Kept successful in-memory location saves ordered by date before notifying" in changes,
             "Project guidance must document chronological in-memory location publishing",
+            failures)
+    require("New location saves reject invalid coordinates before file creation or publication" in readme and
+            "New location saves should reject invalid coordinates before file creation or publication" in security and
+            "Reject invalid new location saves before file creation or publication" in vision and
+            "Rejected invalid new location coordinates before file creation or publication" in changes,
+            "Project guidance must document save-time coordinate validation",
             failures)
     checkout_blocks = re.findall(
         rf"(?m)^(?P<indent> *)- +uses: +{re.escape(CHECKOUT_ACTION)}[^\n]*\n"

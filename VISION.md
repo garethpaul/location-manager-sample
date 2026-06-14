@@ -30,6 +30,7 @@ Priority:
 - New location writes use timestamp-prefixed unique JSON filenames so equal
   timestamps preserve separate local records
 - Keep successful in-memory saves ordered by date before notifying views
+- Reject invalid new location saves before file creation or publication
 - Keep location manager delegate setup ahead of authorization and visit monitoring
 - Keep fake visit simulation using the latest location update from CoreLocation batches
 - Preserve reverse-geocode fallback descriptions when a placemark is unavailable

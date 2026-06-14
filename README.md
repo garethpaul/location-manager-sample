@@ -101,6 +101,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - `LocationsStorage` should keep the saved-location JSON file filter before decoding files from local app documents.
 - `LocationsStorage` should reject non-regular files, JSON files larger than 64
   KiB, and decoded locations with invalid coordinates before publishing them.
+- New location saves reject invalid coordinates before file creation or publication.
 - Notification observer cleanup should stay paired with saved-location observer registration in map and places views.
 - Saved-location notifications should continue to publish on the main thread because observers update UIKit and MapKit.
 - Review changes touching file, media, JSON, XML, CSV, OCR, or data parsing; examples from the scan include Journal/Info.plist, Journal.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist, Journal.xcodeproj/xcshareddata/IDETemplateMacros.plist, Journal.xcodeproj/xcuserdata/gpj.xcuserdatad/xcschemes/xcschememanagement.plist.
