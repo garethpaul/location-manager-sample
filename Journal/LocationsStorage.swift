@@ -95,7 +95,8 @@ class LocationsStorage {
 
   private func publishSavedLocation(_ location: Location) {
     let publish = {
-      self.locations.append(location)
+      let insertionIndex = self.locations.firstIndex { $0.date > location.date } ?? self.locations.endIndex
+      self.locations.insert(location, at: insertionIndex)
       NotificationCenter.default.post(name: .newLocationSaved, object: self, userInfo: ["location": location])
     }
 

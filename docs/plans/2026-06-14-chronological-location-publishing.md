@@ -1,6 +1,6 @@
 # Chronological Location Publishing
 
-Status: planned
+Status: completed
 
 ## Problem
 
@@ -48,3 +48,16 @@ the next launch even though the on-disk data is correct.
 - Equal timestamps need stable placement; inserting after existing equal-date
   entries preserves publication order.
 - The stacked base PR must remain available and merge before this change.
+
+## Verification Completed
+
+- `python3 -m py_compile scripts/check-baseline.py` passed.
+- All four Make gates passed from the checkout, and the canonical check passed
+  from an external directory through the absolute Makefile path.
+- Six isolated hostile mutations were rejected: unconditional append, reversed
+  date comparison, notification-before-insertion ordering, removed end-index
+  fallback, stale plan status, and missing maintenance guidance.
+- `git diff --check` and explicit intended-path, generated-artifact, and
+  secret-pattern audits passed.
+- `xcodebuild` is unavailable on this Linux host, so no simulator, device, Core
+  Location callback, or live filesystem runtime verification is claimed.

@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-14
+
+- Kept successful in-memory location saves ordered by date before notifying
+  table and map observers.
+
 ## 2026-06-13
 
 - Made every Make verification alias resolve the static checker from the

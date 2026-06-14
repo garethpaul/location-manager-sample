@@ -63,13 +63,15 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   decoded locations with invalid coordinates.
 - New location writes use timestamp-prefixed unique JSON filenames so equal
   timestamps cannot replace an earlier persisted entry.
+- Successful saves are inserted by date before observers are notified, so
+  asynchronous geocoding cannot leave the in-memory journal out of order.
 - Visit notifications use a redacted notification body so precise place descriptions stay inside the app.
 - Reverse-geocode fallback descriptions keep local location saves working when
   the geocoder returns no placemark.
 
 ## Testing and Verification
 
-- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, bounded location-file loading, coordinate validation, notification observer lifecycle cleanup, location manager delegate setup, latest location update selection, reverse-geocode fallback descriptions, main-thread notification delivery, redacted notification body handling, places table index guard handling, local-only privacy docs, and generated-file ignores.
+- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, bounded location-file loading, coordinate validation, chronological saved-location publishing, notification observer lifecycle cleanup, location manager delegate setup, latest location update selection, reverse-geocode fallback descriptions, main-thread notification delivery, redacted notification body handling, places table index guard handling, local-only privacy docs, and generated-file ignores.
 - The Make gates are location-independent. From another directory, pass the
   checkout's Makefile by absolute path, such as
   `make -f /path/to/location-manager-sample/Makefile check`.
