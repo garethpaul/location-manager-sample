@@ -65,6 +65,8 @@ Reverse-geocode fallback descriptions should keep local saves available when
 geocoding cannot resolve a placemark.
 New location writes should use timestamp-prefixed unique JSON filenames so
 equal timestamps cannot collapse separate local records.
+Successful saves should be inserted chronologically before views are notified
+so asynchronous geocoding cannot expose inconsistent in-memory ordering.
 
 ## Dependency and Supply Chain Security
 

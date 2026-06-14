@@ -112,6 +112,7 @@ def main():
         "docs/plans/2026-06-12-checkout-credential-boundary.md",
         "docs/plans/2026-06-13-unique-location-filenames.md",
         "docs/plans/2026-06-13-location-independent-make.md",
+        "docs/plans/2026-06-14-chronological-location-publishing.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -189,6 +190,7 @@ def main():
     )
     unique_filenames_plan = read("docs/plans/2026-06-13-unique-location-filenames.md")
     location_independent_make_plan = read("docs/plans/2026-06-13-location-independent-make.md")
+    chronological_publish_plan = read("docs/plans/2026-06-14-chronological-location-publishing.md")
     workflow = read(".github/workflows/check.yml")
     workflow_files = [
         *sorted((ROOT / ".github/workflows").glob("*.yml")),
@@ -281,6 +283,19 @@ def main():
             failures)
     require("func publishSavedLocation(_ location: Location)" in storage and "Thread.isMainThread" in storage,
             "LocationsStorage must centralize saved-location publishing and check the main thread",
+            failures)
+    publish_start = storage.find("private func publishSavedLocation(_ location: Location)")
+    publish_end = storage.find("\n  func saveCLLocationToDisk", publish_start)
+    publish_helper = storage[publish_start:publish_end]
+    insertion_index = publish_helper.find("self.locations.firstIndex { $0.date > location.date }")
+    insert_index = publish_helper.find("self.locations.insert(location, at: insertionIndex)")
+    notification_index = publish_helper.find("NotificationCenter.default.post(name: .newLocationSaved")
+    require(insertion_index >= 0 and
+            "?? self.locations.endIndex" in publish_helper and
+            insert_index > insertion_index and
+            notification_index > insert_index and
+            "self.locations.append(location)" not in publish_helper,
+            "LocationsStorage must insert successful saves chronologically before publishing notifications",
             failures)
     require("DispatchQueue.main.async" in storage and "NotificationCenter.default.post(name: .newLocationSaved" in storage,
             "LocationsStorage must dispatch saved-location notifications to the main queue when needed",
@@ -419,6 +434,21 @@ def main():
             "five isolated hostile mutations" in location_independent_make_plan,
             "location-independent Make plan must record completed root, external, and mutation verification",
             failures)
+    chronological_publish_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", chronological_publish_plan
+    )
+    chronological_publish_verification = markdown_section(
+        chronological_publish_plan, "Verification Completed"
+    )
+    require(chronological_publish_status == ["completed"] and
+            chronological_publish_verification and
+            "All four Make gates passed" in chronological_publish_verification and
+            "external directory" in chronological_publish_verification and
+            "Six isolated hostile mutations were rejected" in chronological_publish_verification and
+            "`xcodebuild` is unavailable" in chronological_publish_verification and
+            not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", chronological_publish_verification),
+            "chronological location publishing plan must record completed status and actual verification",
+            failures)
     bounded_loads_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", bounded_loads_plan)
     bounded_loads_work = markdown_section(bounded_loads_plan, "Work Completed")
     bounded_loads_verification = markdown_section(
@@ -459,6 +489,12 @@ def main():
             "New location writes use timestamp-prefixed unique JSON filenames" in vision and
             "Added timestamp-prefixed unique JSON filenames for new location writes" in changes,
             "Project guidance must document unique persisted location filenames",
+            failures)
+    require("Successful saves are inserted by date before observers are notified" in readme and
+            "Successful saves should be inserted chronologically before views are notified" in security and
+            "Keep successful in-memory saves ordered by date before notifying views" in vision and
+            "Kept successful in-memory location saves ordered by date before notifying" in changes,
+            "Project guidance must document chronological in-memory location publishing",
             failures)
     checkout_blocks = re.findall(
         rf"(?m)^(?P<indent> *)- +uses: +{re.escape(CHECKOUT_ACTION)}[^\n]*\n"
