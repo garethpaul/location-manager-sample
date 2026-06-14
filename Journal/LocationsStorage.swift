@@ -74,6 +74,10 @@ class LocationsStorage {
   }
   
   func saveLocationOnDisk(_ location: Location) {
+    guard CLLocationCoordinate2DIsValid(location.coordinates) else {
+      return
+    }
+
     let encoder = JSONEncoder()
     guard
       let documentsURL = documentsURL,

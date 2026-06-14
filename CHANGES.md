@@ -2,6 +2,7 @@
 
 ## 2026-06-14
 
+- Rejected invalid new location coordinates before file creation or publication.
 - Kept successful in-memory location saves ordered by date before notifying
   table and map observers.
 
