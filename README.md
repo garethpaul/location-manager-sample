@@ -61,6 +61,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Startup loading uses a saved-location JSON file filter before decoding local app documents.
 - Startup loading accepts only regular JSON files up to 64 KiB and rejects
   decoded locations with invalid coordinates.
+- Startup reads at most 1,000 newest eligible location JSON files across legacy
+  timestamp names and current timestamp-UUID names, then restores date order.
 - New location writes use timestamp-prefixed unique JSON filenames so equal
   timestamps cannot replace an earlier persisted entry.
 - Successful saves are inserted by date before observers are notified, so

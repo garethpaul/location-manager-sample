@@ -27,6 +27,8 @@ Priority:
 - Keep saved-location JSON file filter handling before decoding local documents
 - Keep saved-location loads limited to regular JSON files up to 64 KiB and
   reject decoded invalid coordinates
+- Keep startup reads bounded to the 1,000 newest eligible location JSON files
+  across legacy timestamp and current timestamp-UUID names
 - New location writes use timestamp-prefixed unique JSON filenames so equal
   timestamps preserve separate local records
 - Keep successful in-memory saves ordered by date before notifying views

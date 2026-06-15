@@ -114,6 +114,7 @@ def main():
         "docs/plans/2026-06-13-location-independent-make.md",
         "docs/plans/2026-06-14-chronological-location-publishing.md",
         "docs/plans/2026-06-14-save-coordinate-validation.md",
+        "docs/plans/2026-06-15-bounded-location-count-integration.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -193,6 +194,7 @@ def main():
     location_independent_make_plan = read("docs/plans/2026-06-13-location-independent-make.md")
     chronological_publish_plan = read("docs/plans/2026-06-14-chronological-location-publishing.md")
     save_coordinate_plan = read("docs/plans/2026-06-14-save-coordinate-validation.md")
+    bounded_count_plan = read("docs/plans/2026-06-15-bounded-location-count-integration.md")
     workflow = read(".github/workflows/check.yml")
     workflow_files = [
         *sorted((ROOT / ".github/workflows").glob("*.yml")),
@@ -269,13 +271,34 @@ def main():
             "LocationsStorage must filter persisted location loads to JSON files",
             failures)
     resource_values_index = storage.find("url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])")
-    data_read_index = storage.find("Data(contentsOf: url)")
+    data_read_index = storage.find("Data(contentsOf: candidate.url)")
     require("maximumLocationFileSize = 64 * 1024" in storage and
             resource_values_index >= 0 and
             "resourceValues.isRegularFile == true" in storage and
             "fileSize <= LocationsStorage.maximumLocationFileSize" in storage and
             data_read_index > resource_values_index,
             "LocationsStorage must reject non-regular or oversized JSON files before reading them",
+            failures)
+    timestamp_helper_start = storage.find("private static func timestamp(fromLocationFileURL url: URL)")
+    timestamp_helper_end = storage.find("\n  func saveLocationOnDisk", timestamp_helper_start)
+    timestamp_helper = storage[timestamp_helper_start:timestamp_helper_end]
+    candidate_start = storage.find("let locationFileCandidates = locationFilesURLs.compactMap")
+    newest_first = storage.find("}.sorted(by: {", candidate_start)
+    count_prefix = storage.find(".prefix(LocationsStorage.maximumLocationFileCount)", newest_first)
+    chronological_sort = storage.find(".sorted(by: { $0.date < $1.date })", data_read_index)
+    require("maximumLocationFileCount = 1000" in storage and
+            timestamp_helper_start >= 0 and timestamp_helper_end >= 0 and
+            "TimeInterval(fileName)" in timestamp_helper and
+            'fileName.dropFirst().firstIndex(of: "-")' in timestamp_helper and
+            "UUID(uuidString:" in timestamp_helper and
+            timestamp_helper.count("timestamp.isFinite") == 2 and
+            "if $0.timestamp == $1.timestamp" in storage and
+            "return $0.url.lastPathComponent > $1.url.lastPathComponent" in storage and
+            "return $0.timestamp > $1.timestamp" in storage and
+            -1 not in (candidate_start, newest_first, count_prefix, data_read_index,
+                       chronological_sort) and
+            candidate_start < newest_first < count_prefix < data_read_index < chronological_sort,
+            "LocationsStorage must parse legacy and unique timestamp names and bound newest candidates before reading data",
             failures)
     require("CLLocationCoordinate2DIsValid(location.coordinates)" in storage,
             "LocationsStorage must reject persisted locations with invalid coordinates",
@@ -486,6 +509,20 @@ def main():
             not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", save_coordinate_verification),
             "save coordinate validation plan must record completed status and actual verification",
             failures)
+    bounded_count_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", bounded_count_plan)
+    bounded_count_verification = markdown_section(
+        bounded_count_plan, "Verification Completed"
+    )
+    require(bounded_count_status == ["completed"] and
+            bounded_count_verification and
+            "All four Make gates passed" in bounded_count_verification and
+            "external-directory Make gate" in bounded_count_verification and
+            "Nine isolated hostile mutations were rejected" in bounded_count_verification and
+            "git diff --check" in bounded_count_verification and
+            "xcodebuild is unavailable" in bounded_count_verification and
+            not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", bounded_count_verification),
+            "bounded location count integration plan must record completed status and actual verification",
+            failures)
     bounded_loads_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", bounded_loads_plan)
     bounded_loads_work = markdown_section(bounded_loads_plan, "Work Completed")
     bounded_loads_verification = markdown_section(
@@ -538,6 +575,12 @@ def main():
             "Reject invalid new location saves before file creation or publication" in vision and
             "Rejected invalid new location coordinates before file creation or publication" in changes,
             "Project guidance must document save-time coordinate validation",
+            failures)
+    require("Startup reads at most 1,000 newest eligible location JSON files" in readme and
+            "Startup should read at most 1,000 newest eligible location JSON files" in security and
+            "Keep startup reads bounded to the 1,000 newest eligible location JSON files" in vision and
+            "Bounded startup reads to the 1,000 newest eligible location JSON files" in changes,
+            "Project guidance must document the compatible persisted location count boundary",
             failures)
     checkout_blocks = re.findall(
         rf"(?m)^(?P<indent> *)- +uses: +{re.escape(CHECKOUT_ACTION)}[^\n]*\n"

@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-15
+
+- Bounded startup reads to the 1,000 newest eligible location JSON files while
+  supporting both legacy timestamp and current timestamp-UUID filenames.
+
 ## 2026-06-14
 
 - Rejected invalid new location coordinates before file creation or publication.

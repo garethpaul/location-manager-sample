@@ -32,6 +32,7 @@ import CoreLocation
 class LocationsStorage {
   static let shared = LocationsStorage()
   private static let maximumLocationFileSize = 64 * 1024
+  private static let maximumLocationFileCount = 1000
   
   private(set) var locations: [Location]
   private let fileManager: FileManager
@@ -49,7 +50,7 @@ class LocationsStorage {
     let jsonDecoder = JSONDecoder()
     let locationFilesURLs = (try? fileManager.contentsOfDirectory(at: documentsURL,
                                                                   includingPropertiesForKeys: nil)) ?? []
-    locations = locationFilesURLs.compactMap { url -> Location? in
+    let locationFileCandidates = locationFilesURLs.compactMap { url -> (url: URL, timestamp: TimeInterval)? in
       guard url.pathExtension.lowercased() == "json" else {
         return nil
       }
@@ -62,7 +63,20 @@ class LocationsStorage {
             fileSize <= LocationsStorage.maximumLocationFileSize else {
         return nil
       }
-      guard let data = try? Data(contentsOf: url) else {
+      guard let timestamp = LocationsStorage.timestamp(fromLocationFileURL: url) else {
+        return nil
+      }
+      return (url, timestamp)
+    }.sorted(by: {
+      if $0.timestamp == $1.timestamp {
+        return $0.url.lastPathComponent > $1.url.lastPathComponent
+      }
+      return $0.timestamp > $1.timestamp
+    })
+      .prefix(LocationsStorage.maximumLocationFileCount)
+
+    locations = locationFileCandidates.compactMap { candidate -> Location? in
+      guard let data = try? Data(contentsOf: candidate.url) else {
         return nil
       }
       guard let location = try? jsonDecoder.decode(Location.self, from: data),
@@ -71,6 +85,21 @@ class LocationsStorage {
       }
       return location
     }.sorted(by: { $0.date < $1.date })
+  }
+
+  private static func timestamp(fromLocationFileURL url: URL) -> TimeInterval? {
+    let fileName = url.deletingPathExtension().lastPathComponent
+    if let timestamp = TimeInterval(fileName), timestamp.isFinite {
+      return timestamp
+    }
+
+    guard let separatorIndex = fileName.dropFirst().firstIndex(of: "-"),
+          let timestamp = TimeInterval(String(fileName[..<separatorIndex])),
+          timestamp.isFinite,
+          UUID(uuidString: String(fileName[fileName.index(after: separatorIndex)...])) != nil else {
+      return nil
+    }
+    return timestamp
   }
   
   func saveLocationOnDisk(_ location: Location) {
