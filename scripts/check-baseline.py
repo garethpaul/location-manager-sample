@@ -115,6 +115,7 @@ def main():
         "docs/plans/2026-06-14-chronological-location-publishing.md",
         "docs/plans/2026-06-14-save-coordinate-validation.md",
         "docs/plans/2026-06-15-bounded-location-count-integration.md",
+        "docs/plans/2026-06-16-retained-location-file-cap.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -195,6 +196,7 @@ def main():
     chronological_publish_plan = read("docs/plans/2026-06-14-chronological-location-publishing.md")
     save_coordinate_plan = read("docs/plans/2026-06-14-save-coordinate-validation.md")
     bounded_count_plan = read("docs/plans/2026-06-15-bounded-location-count-integration.md")
+    retained_file_cap_plan = read("docs/plans/2026-06-16-retained-location-file-cap.md")
     workflow = read(".github/workflows/check.yml")
     workflow_files = [
         *sorted((ROOT / ".github/workflows").glob("*.yml")),
@@ -312,6 +314,7 @@ def main():
     encoder_index = save_helper.find("let encoder = JSONEncoder()")
     file_url_index = save_helper.find("let fileURL = documentsURL.appendingPathComponent")
     write_index = save_helper.find("try data.write(to: fileURL, options: .atomic)")
+    prune_index = save_helper.find("prunePersistedLocationFiles(in: documentsURL)")
     publish_index = save_helper.find("publishSavedLocation(location)")
     require(save_start >= 0 and
             save_end > save_start and
@@ -319,9 +322,33 @@ def main():
             encoder_index > save_coordinate_guard_index and
             file_url_index > save_coordinate_guard_index and
             write_index > save_coordinate_guard_index and
+            prune_index > write_index and
             publish_index > save_coordinate_guard_index and
+            publish_index > prune_index and
             save_helper.count("CLLocationCoordinate2DIsValid(location.coordinates)") == 1,
             "LocationsStorage must reject invalid coordinates before save side effects",
+            failures)
+    prune_start = storage.find("private func prunePersistedLocationFiles(in documentsURL: URL)")
+    prune_end = storage.find("\n  private func publishSavedLocation", prune_start)
+    prune_helper = storage[prune_start:prune_end]
+    prune_sort_index = prune_helper.find("}.sorted(by: {")
+    prune_drop_index = prune_helper.find(
+        "candidates.dropFirst(LocationsStorage.maximumLocationFileCount)"
+    )
+    prune_remove_index = prune_helper.find("try? fileManager.removeItem(at: candidate.url)")
+    require(prune_start >= 0 and prune_end > prune_start and
+            "try? fileManager.contentsOfDirectory" in prune_helper and
+            'url.pathExtension.lowercased() == "json"' in prune_helper and
+            "url.resourceValues(forKeys: [.isRegularFileKey])" in prune_helper and
+            "resourceValues.isRegularFile == true" in prune_helper and
+            "LocationsStorage.timestamp(fromLocationFileURL: url)" in prune_helper and
+            "if $0.timestamp == $1.timestamp" in prune_helper and
+            "return $0.url.lastPathComponent > $1.url.lastPathComponent" in prune_helper and
+            "return $0.timestamp > $1.timestamp" in prune_helper and
+            -1 not in (prune_sort_index, prune_drop_index, prune_remove_index) and
+            prune_sort_index < prune_drop_index < prune_remove_index and
+            storage.count("fileManager.removeItem(at:") == 1,
+            "LocationsStorage must prune only oldest compatible regular location JSON files after a successful write",
             failures)
     require("try!" not in storage,
             "LocationsStorage must not force-unwrap file-system or JSON operations",
@@ -523,6 +550,22 @@ def main():
             not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", bounded_count_verification),
             "bounded location count integration plan must record completed status and actual verification",
             failures)
+    retained_file_cap_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", retained_file_cap_plan
+    )
+    retained_file_cap_verification = markdown_section(
+        retained_file_cap_plan, "Verification Completed"
+    )
+    require(retained_file_cap_status == ["completed"] and
+            retained_file_cap_verification and
+            "All four Make gates passed" in retained_file_cap_verification and
+            "external-directory Make gate" in retained_file_cap_verification and
+            "Seven isolated hostile mutations were rejected" in retained_file_cap_verification and
+            "git diff --check" in retained_file_cap_verification and
+            "xcodebuild is unavailable" in retained_file_cap_verification and
+            not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", retained_file_cap_verification),
+            "retained location file cap plan must record completed status and actual verification",
+            failures)
     bounded_loads_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", bounded_loads_plan)
     bounded_loads_work = markdown_section(bounded_loads_plan, "Work Completed")
     bounded_loads_verification = markdown_section(
@@ -569,6 +612,12 @@ def main():
             "Keep successful in-memory saves ordered by date before notifying views" in vision and
             "Kept successful in-memory location saves ordered by date before notifying" in changes,
             "Project guidance must document chronological in-memory location publishing",
+            failures)
+    require("Successful saves best-effort prune compatible location JSON files toward the newest 1,000" in " ".join(readme.split()) and
+            "Successful saves should best-effort prune compatible location JSON files toward the newest 1,000" in " ".join(security.split()) and
+            "Best-effort prune successful saves toward the 1,000 newest compatible location JSON files" in " ".join(vision.split()) and
+            "Added best-effort successful-save pruning toward the 1,000 newest compatible location JSON files" in " ".join(changes.split()),
+            "Project guidance must document bounded compatible location-file retention",
             failures)
     require("New location saves reject invalid coordinates before file creation or publication" in readme and
             "New location saves should reject invalid coordinates before file creation or publication" in security and

@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-16
+
+- Added best-effort successful-save pruning toward the 1,000 newest compatible
+  location JSON files while leaving unrelated documents untouched.
+
 ## 2026-06-15
 
 - Bounded startup reads to the 1,000 newest eligible location JSON files while

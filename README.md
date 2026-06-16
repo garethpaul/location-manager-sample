@@ -65,6 +65,9 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   timestamp names and current timestamp-UUID names, then restores date order.
 - New location writes use timestamp-prefixed unique JSON filenames so equal
   timestamps cannot replace an earlier persisted entry.
+- Successful saves best-effort prune compatible location JSON files toward the
+  newest 1,000 while leaving unrelated documents untouched and preserving a
+  successful save if cleanup fails.
 - Successful saves are inserted by date before observers are notified, so
   asynchronous geocoding cannot leave the in-memory journal out of order.
 - Visit notifications use a redacted notification body so precise place descriptions stay inside the app.
@@ -73,7 +76,7 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 
 ## Testing and Verification
 
-- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, bounded location-file loading, coordinate validation, chronological saved-location publishing, notification observer lifecycle cleanup, location manager delegate setup, latest location update selection, reverse-geocode fallback descriptions, main-thread notification delivery, redacted notification body handling, places table index guard handling, local-only privacy docs, and generated-file ignores.
+- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which validates project metadata, plist/storyboard/asset parsing, bounded location-file loading and retention, coordinate validation, chronological saved-location publishing, notification observer lifecycle cleanup, location manager delegate setup, latest location update selection, reverse-geocode fallback descriptions, main-thread notification delivery, redacted notification body handling, places table index guard handling, local-only privacy docs, and generated-file ignores.
 - The Make gates are location-independent. From another directory, pass the
   checkout's Makefile by absolute path, such as
   `make -f /path/to/location-manager-sample/Makefile check`.

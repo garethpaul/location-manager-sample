@@ -1,7 +1,7 @@
 ---
 title: Retained Location File Cap
 date: 2026-06-16
-status: planned
+status: completed
 execution: code
 ---
 
@@ -14,8 +14,8 @@ without bound.
 
 ## Requirements
 
-- After an atomic save, retain only the 1,000 newest compatible timestamped
-  location JSON files.
+- After an atomic save, best-effort prune compatible timestamped location JSON
+  files toward the newest 1,000.
 - Accept both legacy `timestamp.json` and current `timestamp-UUID.json` names
   when selecting retention candidates.
 - Delete oldest candidates deterministically and leave unrelated, malformed,
@@ -44,3 +44,31 @@ without bound.
 - Audit the exact diff, generated artifacts, project/workflow files, binaries,
   whitespace, conflict markers, and changed-line credential patterns.
 - Capture one bounded exact-head pull-request and security snapshot after push.
+
+## Work Completed
+
+- Added best-effort post-write pruning for regular JSON files with compatible
+  legacy or timestamp-UUID location filenames.
+- Reused the startup timestamp parser and newest-first filename tie-break so
+  retention keeps the same deterministic 1,000-file boundary as startup reads.
+- Kept cleanup after atomic persistence and before in-memory publication; a
+  directory-listing or individual deletion failure returns from cleanup only,
+  so the 1,000-file target is not overstated as a hard guarantee.
+- Added ordering-sensitive static checks and synchronized retention and privacy
+  guidance.
+
+## Verification Completed
+
+- All four Make gates passed through the static baseline.
+- The external-directory Make gate passed through the absolute Makefile path.
+- `python3 -m py_compile scripts/check-baseline.py` passed with bytecode
+  redirected outside the repository.
+- Seven isolated hostile mutations were rejected: cleanup omission, oldest-
+  first reversal, unrelated-file filter removal, pruning before the atomic
+  write, cleanup failure blocking publication, incomplete plan evidence, and
+  missing retention guidance.
+- `git diff --check`, generated-artifact inspection, project/workflow review,
+  binary inspection, conflict-marker review, and changed-line credential-pattern
+  review passed.
+- xcodebuild is unavailable on this Linux host, so simulator, device, Core
+  Location, and live persisted-filesystem behavior are not claimed.
