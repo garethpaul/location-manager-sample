@@ -110,7 +110,8 @@ class LocationsStorage {
     let encoder = JSONEncoder()
     guard
       let documentsURL = documentsURL,
-      let data = try? encoder.encode(location)
+      let data = try? encoder.encode(location),
+      data.count <= LocationsStorage.maximumLocationFileSize
     else {
       return
     }

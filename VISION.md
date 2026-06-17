@@ -36,6 +36,7 @@ Priority:
   location JSON files without deleting unrelated documents, while keeping
   oversized files outside the size-eligible retention budget
 - Reject invalid new location saves before file creation or publication
+- Reject new encoded location records over 64 KiB before save side effects
 - Keep location manager delegate setup ahead of authorization and visit monitoring
 - Keep fake visit simulation using the latest location update from CoreLocation batches
 - Preserve reverse-geocode fallback descriptions when a placemark is unavailable

@@ -4,6 +4,8 @@
 
 - Aligned successful-save pruning with the startup 64 KiB file-size boundary so
   oversized location-shaped JSON files do not displace valid retained entries.
+- Rejected newly encoded location records over 64 KiB before file creation,
+  pruning, or publication.
 
 ## 2026-06-16
 

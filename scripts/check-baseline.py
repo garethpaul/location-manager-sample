@@ -117,6 +117,7 @@ def main():
         "docs/plans/2026-06-15-bounded-location-count-integration.md",
         "docs/plans/2026-06-16-retained-location-file-cap.md",
         "docs/plans/2026-06-17-retained-location-file-eligibility.md",
+        "docs/plans/2026-06-17-save-location-file-size-limit.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -199,6 +200,7 @@ def main():
     bounded_count_plan = read("docs/plans/2026-06-15-bounded-location-count-integration.md")
     retained_file_cap_plan = read("docs/plans/2026-06-16-retained-location-file-cap.md")
     retained_file_eligibility_plan = read("docs/plans/2026-06-17-retained-location-file-eligibility.md")
+    save_size_limit_plan = read("docs/plans/2026-06-17-save-location-file-size-limit.md")
     workflow = read(".github/workflows/check.yml")
     workflow_files = [
         *sorted((ROOT / ".github/workflows").glob("*.yml")),
@@ -314,6 +316,9 @@ def main():
         "guard CLLocationCoordinate2DIsValid(location.coordinates) else"
     )
     encoder_index = save_helper.find("let encoder = JSONEncoder()")
+    encoded_size_guard_index = save_helper.find(
+        "data.count <= LocationsStorage.maximumLocationFileSize"
+    )
     file_url_index = save_helper.find("let fileURL = documentsURL.appendingPathComponent")
     write_index = save_helper.find("try data.write(to: fileURL, options: .atomic)")
     prune_index = save_helper.find("prunePersistedLocationFiles(in: documentsURL)")
@@ -322,13 +327,15 @@ def main():
             save_end > save_start and
             save_coordinate_guard_index >= 0 and
             encoder_index > save_coordinate_guard_index and
-            file_url_index > save_coordinate_guard_index and
-            write_index > save_coordinate_guard_index and
+            encoded_size_guard_index > encoder_index and
+            file_url_index > encoded_size_guard_index and
+            write_index > encoded_size_guard_index and
             prune_index > write_index and
-            publish_index > save_coordinate_guard_index and
+            publish_index > encoded_size_guard_index and
             publish_index > prune_index and
-            save_helper.count("CLLocationCoordinate2DIsValid(location.coordinates)") == 1,
-            "LocationsStorage must reject invalid coordinates before save side effects",
+            save_helper.count("CLLocationCoordinate2DIsValid(location.coordinates)") == 1 and
+            save_helper.count("data.count <= LocationsStorage.maximumLocationFileSize") == 1,
+            "LocationsStorage must reject invalid coordinates and oversized encoded data before save side effects",
             failures)
     prune_start = storage.find("private func prunePersistedLocationFiles(in documentsURL: URL)")
     prune_end = storage.find("\n  private func publishSavedLocation", prune_start)
@@ -587,6 +594,22 @@ def main():
             not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", retained_file_eligibility_verification),
             "retained location file eligibility plan must record completed status and actual verification",
             failures)
+    save_size_limit_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", save_size_limit_plan
+    )
+    save_size_limit_verification = markdown_section(
+        save_size_limit_plan, "Verification Completed"
+    )
+    require(save_size_limit_status == ["completed"] and
+            save_size_limit_verification and
+            "All four Make gates passed" in save_size_limit_verification and
+            "external-directory Make gate passed" in save_size_limit_verification and
+            "Six isolated hostile mutations were rejected" in save_size_limit_verification and
+            "git diff --check" in save_size_limit_verification and
+            "`xcodebuild` is unavailable" in save_size_limit_verification and
+            not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", save_size_limit_verification),
+            "save-time location file size plan must record completed status and actual verification",
+            failures)
     bounded_loads_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", bounded_loads_plan)
     bounded_loads_work = markdown_section(bounded_loads_plan, "Work Completed")
     bounded_loads_verification = markdown_section(
@@ -651,6 +674,12 @@ def main():
             "Reject invalid new location saves before file creation or publication" in vision and
             "Rejected invalid new location coordinates before file creation or publication" in changes,
             "Project guidance must document save-time coordinate validation",
+            failures)
+    require("New saves reject encoded location data over 64 KiB" in readme and
+            "New location saves should reject encoded data over 64 KiB" in security and
+            "Reject new encoded location records over 64 KiB" in vision and
+            "Rejected newly encoded location records over 64 KiB" in changes,
+            "Project guidance must document save-time encoded-size validation",
             failures)
     require("Startup reads at most 1,000 newest eligible location JSON files" in readme and
             "Startup should read at most 1,000 newest eligible location JSON files" in security and

@@ -70,6 +70,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   successful save if cleanup fails. Pruning uses the same 64 KiB size
   eligibility as startup reads, so oversized files do not consume the
   compatible retention budget.
+- New saves reject encoded location data over 64 KiB before creating a file or
+  publishing it in memory, so they cannot bypass that retention budget.
 - Successful saves are inserted by date before observers are notified, so
   asynchronous geocoding cannot leave the in-memory journal out of order.
 - Visit notifications use a redacted notification body so precise place descriptions stay inside the app.

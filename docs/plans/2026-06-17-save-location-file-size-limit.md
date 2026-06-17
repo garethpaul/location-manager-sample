@@ -2,7 +2,7 @@
 title: Enforce the location file size limit at save time
 type: reliability
 date: 2026-06-17
-status: in_progress
+status: completed
 execution: code
 ---
 
@@ -68,8 +68,25 @@ truthful completed-plan evidence against isolated weakening.
 
 ## Work Completed
 
-Pending implementation.
+- Required encoded location data to fit the shared 64 KiB file-size limit
+  before filename creation or any successful-save side effect.
+- Preserved coordinate validation, atomic writes, successful-save pruning,
+  chronological publication, notifications, and the existing limits.
+- Extended the maintained checker and repository guidance with the save-time
+  encoded-size contract and completed plan evidence.
 
 ## Verification Completed
 
-Pending implementation and validation.
+- All four Make gates passed from the no-hardlink isolated clone's repository
+  root, and the external-directory Make gate passed via its absolute Makefile
+  path.
+- All four Make gates and the external-directory Make gate also passed against
+  the finalized worktree.
+- Six isolated hostile mutations were rejected for an off-by-one comparison, a
+  duplicated numeric limit, late guard ordering, documentation removal, plan
+  status regression, and verification-evidence removal.
+- Python checker syntax and `git diff --check` passed before final repository
+  gates.
+- `xcodebuild` is unavailable on this Linux host, so Xcode, simulator/device,
+  live filesystem, Core Location, reverse-geocoding, and UI test execution are
+  not claimed.

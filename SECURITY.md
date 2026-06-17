@@ -38,6 +38,8 @@ Helpful reports include:
 - Saved-location loading should accept only regular JSON files up to 64 KiB and
   reject invalid coordinates before decoded data reaches the UI.
 - New location saves should reject invalid coordinates before file creation or publication.
+- New location saves should reject encoded data over 64 KiB before file
+  creation, pruning, publication, or notification.
 - Location manager delegate setup should happen before authorization and visit monitoring so visit callbacks are handled by the app delegate.
 - Fake visit simulation should use the latest location update from CoreLocation
   batches instead of an older sample.
