@@ -33,7 +33,8 @@ Priority:
   timestamps preserve separate local records
 - Keep successful in-memory saves ordered by date before notifying views
 - Best-effort prune successful saves toward the 1,000 newest compatible
-  location JSON files without deleting unrelated documents
+  location JSON files without deleting unrelated documents, while keeping
+  oversized files outside the size-eligible retention budget
 - Reject invalid new location saves before file creation or publication
 - Keep location manager delegate setup ahead of authorization and visit monitoring
 - Keep fake visit simulation using the latest location update from CoreLocation batches

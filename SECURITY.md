@@ -70,7 +70,9 @@ Successful saves should be inserted chronologically before views are notified
 so asynchronous geocoding cannot expose inconsistent in-memory ordering.
 Successful saves should best-effort prune compatible location JSON files toward
 the newest 1,000 while leaving unrelated, malformed, and non-JSON documents
-untouched and preserving successful publication if cleanup fails.
+untouched and preserving successful publication if cleanup fails. Pruning
+should use the same 64 KiB size eligibility as startup reads so oversized files
+remain outside the compatible retention budget.
 Startup should read at most 1,000 newest eligible location JSON files across
 legacy timestamp and current timestamp-UUID names without deleting older files.
 

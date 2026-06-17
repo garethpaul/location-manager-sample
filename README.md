@@ -67,7 +67,9 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   timestamps cannot replace an earlier persisted entry.
 - Successful saves best-effort prune compatible location JSON files toward the
   newest 1,000 while leaving unrelated documents untouched and preserving a
-  successful save if cleanup fails.
+  successful save if cleanup fails. Pruning uses the same 64 KiB size
+  eligibility as startup reads, so oversized files do not consume the
+  compatible retention budget.
 - Successful saves are inserted by date before observers are notified, so
   asynchronous geocoding cannot leave the in-memory journal out of order.
 - Visit notifications use a redacted notification body so precise place descriptions stay inside the app.

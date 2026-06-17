@@ -129,14 +129,16 @@ class LocationsStorage {
 
   private func prunePersistedLocationFiles(in documentsURL: URL) {
     guard let files = try? fileManager.contentsOfDirectory(at: documentsURL,
-                                                            includingPropertiesForKeys: [.isRegularFileKey]) else {
+                                                            includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey]) else {
       return
     }
 
     let candidates = files.compactMap { url -> (url: URL, timestamp: TimeInterval)? in
       guard url.pathExtension.lowercased() == "json",
-            let resourceValues = try? url.resourceValues(forKeys: [.isRegularFileKey]),
+            let resourceValues = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
             resourceValues.isRegularFile == true,
+            let fileSize = resourceValues.fileSize,
+            fileSize <= LocationsStorage.maximumLocationFileSize,
             let timestamp = LocationsStorage.timestamp(fromLocationFileURL: url) else {
         return nil
       }

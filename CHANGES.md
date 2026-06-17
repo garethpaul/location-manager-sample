@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-17
+
+- Aligned successful-save pruning with the startup 64 KiB file-size boundary so
+  oversized location-shaped JSON files do not displace valid retained entries.
+
 ## 2026-06-16
 
 - Added best-effort successful-save pruning toward the 1,000 newest compatible

@@ -116,6 +116,7 @@ def main():
         "docs/plans/2026-06-14-save-coordinate-validation.md",
         "docs/plans/2026-06-15-bounded-location-count-integration.md",
         "docs/plans/2026-06-16-retained-location-file-cap.md",
+        "docs/plans/2026-06-17-retained-location-file-eligibility.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -197,6 +198,7 @@ def main():
     save_coordinate_plan = read("docs/plans/2026-06-14-save-coordinate-validation.md")
     bounded_count_plan = read("docs/plans/2026-06-15-bounded-location-count-integration.md")
     retained_file_cap_plan = read("docs/plans/2026-06-16-retained-location-file-cap.md")
+    retained_file_eligibility_plan = read("docs/plans/2026-06-17-retained-location-file-eligibility.md")
     workflow = read(".github/workflows/check.yml")
     workflow_files = [
         *sorted((ROOT / ".github/workflows").glob("*.yml")),
@@ -339,8 +341,11 @@ def main():
     require(prune_start >= 0 and prune_end > prune_start and
             "try? fileManager.contentsOfDirectory" in prune_helper and
             'url.pathExtension.lowercased() == "json"' in prune_helper and
-            "url.resourceValues(forKeys: [.isRegularFileKey])" in prune_helper and
+            "includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey]" in prune_helper and
+            "url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])" in prune_helper and
             "resourceValues.isRegularFile == true" in prune_helper and
+            "let fileSize = resourceValues.fileSize" in prune_helper and
+            "fileSize <= LocationsStorage.maximumLocationFileSize" in prune_helper and
             "LocationsStorage.timestamp(fromLocationFileURL: url)" in prune_helper and
             "if $0.timestamp == $1.timestamp" in prune_helper and
             "return $0.url.lastPathComponent > $1.url.lastPathComponent" in prune_helper and
@@ -348,7 +353,7 @@ def main():
             -1 not in (prune_sort_index, prune_drop_index, prune_remove_index) and
             prune_sort_index < prune_drop_index < prune_remove_index and
             storage.count("fileManager.removeItem(at:") == 1,
-            "LocationsStorage must prune only oldest compatible regular location JSON files after a successful write",
+            "LocationsStorage must prune only oldest size-eligible compatible regular location JSON files after a successful write",
             failures)
     require("try!" not in storage,
             "LocationsStorage must not force-unwrap file-system or JSON operations",
@@ -566,6 +571,22 @@ def main():
             not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", retained_file_cap_verification),
             "retained location file cap plan must record completed status and actual verification",
             failures)
+    retained_file_eligibility_status = re.findall(
+        r"(?mi)^status:\s*(.+?)\s*$", retained_file_eligibility_plan
+    )
+    retained_file_eligibility_verification = markdown_section(
+        retained_file_eligibility_plan, "Verification Completed"
+    )
+    require(retained_file_eligibility_status == ["completed"] and
+            retained_file_eligibility_verification and
+            "All four Make gates passed" in retained_file_eligibility_verification and
+            "absolute Makefile gate passed" in retained_file_eligibility_verification and
+            "Five isolated hostile mutations were rejected" in retained_file_eligibility_verification and
+            "exact diff" in retained_file_eligibility_verification and
+            "xcodebuild` is unavailable" in retained_file_eligibility_verification and
+            not re.search(r"(?i)\b(?:pending|todo|tbd|not run)\b", retained_file_eligibility_verification),
+            "retained location file eligibility plan must record completed status and actual verification",
+            failures)
     bounded_loads_status = re.findall(r"(?mi)^status:\s*(.+?)\s*$", bounded_loads_plan)
     bounded_loads_work = markdown_section(bounded_loads_plan, "Work Completed")
     bounded_loads_verification = markdown_section(
@@ -618,6 +639,12 @@ def main():
             "Best-effort prune successful saves toward the 1,000 newest compatible location JSON files" in " ".join(vision.split()) and
             "Added best-effort successful-save pruning toward the 1,000 newest compatible location JSON files" in " ".join(changes.split()),
             "Project guidance must document bounded compatible location-file retention",
+            failures)
+    require("same 64 KiB size eligibility as startup reads" in " ".join(readme.split()) and
+            "same 64 KiB size eligibility as startup reads" in " ".join(security.split()) and
+            "oversized files outside the size-eligible retention budget" in " ".join(vision.split()) and
+            "oversized location-shaped JSON files do not displace valid retained entries" in " ".join(changes.split()),
+            "Project guidance must align retained location pruning with startup size eligibility",
             failures)
     require("New location saves reject invalid coordinates before file creation or publication" in readme and
             "New location saves should reject invalid coordinates before file creation or publication" in security and
