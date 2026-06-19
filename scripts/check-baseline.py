@@ -277,13 +277,22 @@ def main():
             "LocationsStorage must filter persisted location loads to JSON files",
             failures)
     resource_values_index = storage.find("url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])")
-    data_read_index = storage.find("Data(contentsOf: candidate.url)")
+    data_read_index = storage.find("LocationsStorage.dataForEligibleLocationFile(at: candidate.url)")
+    bounded_data_helper_start = storage.find("private static func dataForEligibleLocationFile(at url: URL)")
+    bounded_data_helper_end = storage.find("\n  func saveLocationOnDisk", bounded_data_helper_start)
+    bounded_data_helper = storage[bounded_data_helper_start:bounded_data_helper_end]
     require("maximumLocationFileSize = 64 * 1024" in storage and
             resource_values_index >= 0 and
             "resourceValues.isRegularFile == true" in storage and
             "fileSize <= LocationsStorage.maximumLocationFileSize" in storage and
+            bounded_data_helper_start >= 0 and
+            bounded_data_helper_end > bounded_data_helper_start and
+            "FileHandle(forReadingFrom: url)" in bounded_data_helper and
+            "readData(ofLength: LocationsStorage.maximumLocationFileSize + 1)" in bounded_data_helper and
+            "data.count <= LocationsStorage.maximumLocationFileSize" in bounded_data_helper and
+            "Data(contentsOf:" not in storage and
             data_read_index > resource_values_index,
-            "LocationsStorage must reject non-regular or oversized JSON files before reading them",
+            "LocationsStorage must reject non-regular or oversized JSON files before bounded reads and decoding",
             failures)
     timestamp_helper_start = storage.find("private static func timestamp(fromLocationFileURL url: URL)")
     timestamp_helper_end = storage.find("\n  func saveLocationOnDisk", timestamp_helper_start)

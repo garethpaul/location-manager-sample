@@ -76,7 +76,7 @@ class LocationsStorage {
       .prefix(LocationsStorage.maximumLocationFileCount)
 
     locations = locationFileCandidates.compactMap { candidate -> Location? in
-      guard let data = try? Data(contentsOf: candidate.url) else {
+      guard let data = LocationsStorage.dataForEligibleLocationFile(at: candidate.url) else {
         return nil
       }
       guard let location = try? jsonDecoder.decode(Location.self, from: data),
@@ -100,6 +100,21 @@ class LocationsStorage {
       return nil
     }
     return timestamp
+  }
+
+  private static func dataForEligibleLocationFile(at url: URL) -> Data? {
+    guard let fileHandle = try? FileHandle(forReadingFrom: url) else {
+      return nil
+    }
+    defer {
+      fileHandle.closeFile()
+    }
+
+    let data = fileHandle.readData(ofLength: LocationsStorage.maximumLocationFileSize + 1)
+    guard data.count <= LocationsStorage.maximumLocationFileSize else {
+      return nil
+    }
+    return data
   }
   
   func saveLocationOnDisk(_ location: Location) {

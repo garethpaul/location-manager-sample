@@ -35,8 +35,9 @@ Helpful reports include:
   launch a simulator, or exercise UI flows.
 - Saved location history should remain local app documents data. Changes that export, upload, sync, log, or broaden retention of locations need explicit privacy review.
 - Saved-location JSON file filter handling should stay before decoding local app documents so unrelated files are ignored.
-- Saved-location loading should accept only regular JSON files up to 64 KiB and
-  reject invalid coordinates before decoded data reaches the UI.
+- Saved-location loading should accept only regular JSON files up to 64 KiB,
+  cap each file read before decode, and reject invalid coordinates before
+  decoded data reaches the UI.
 - New location saves should reject invalid coordinates before file creation or publication.
 - New location saves should reject encoded data over 64 KiB before file
   creation, pruning, publication, or notification.
@@ -77,6 +78,8 @@ should use the same 64 KiB size eligibility as startup reads so oversized files
 remain outside the compatible retention budget.
 Startup should read at most 1,000 newest eligible location JSON files across
 legacy timestamp and current timestamp-UUID names without deleting older files.
+Each startup file read should stay capped before decode even if file contents
+change after metadata inspection.
 
 ## Dependency and Supply Chain Security
 

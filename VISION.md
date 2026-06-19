@@ -25,8 +25,8 @@ Priority:
 - Keep route fixture and security policy aligned with the sample
 - Keep location storage local-only and resilient to file-system/JSON failures
 - Keep saved-location JSON file filter handling before decoding local documents
-- Keep saved-location loads limited to regular JSON files up to 64 KiB and
-  reject decoded invalid coordinates
+- Keep saved-location loads limited to regular JSON files up to 64 KiB, cap
+  each file read before decode, and reject decoded invalid coordinates
 - Keep startup reads bounded to the 1,000 newest eligible location JSON files
   across legacy timestamp and current timestamp-UUID names
 - New location writes use timestamp-prefixed unique JSON filenames so equal
