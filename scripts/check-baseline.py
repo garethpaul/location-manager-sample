@@ -131,7 +131,7 @@ def workflow_run_commands(workflow):
     return commands
 
 
-def write_hosted_authoritative_checker(checkout, expected_makefile, marker):
+def write_hosted_candidate_checker(checkout, expected_makefile, marker):
     (checkout / "scripts/check-baseline.py").write_text(
         "#!/usr/bin/env python3\n"
         "from pathlib import Path\n"
@@ -145,7 +145,7 @@ def write_hosted_authoritative_checker(checkout, expected_makefile, marker):
         "    sys.exit(1)\n"
         "count = int(marker.read_text(encoding='utf-8')) if marker.exists() else 0\n"
         "marker.write_text(str(count + 1), encoding='utf-8')\n"
-        "print('authoritative checker executed')\n",
+        "print('candidate checker executed')\n",
         encoding="utf-8",
     )
 
@@ -206,7 +206,7 @@ def check_hosted_workflow_bootstrap(makefile, workflow, failures):
             (checkout / "scripts").mkdir(parents=True)
             (checkout / "Journal.xcodeproj").mkdir()
             (checkout / "Makefile").write_text(makefile_content, encoding="utf-8")
-            write_hosted_authoritative_checker(checkout, makefile, marker)
+            write_hosted_candidate_checker(checkout, makefile, marker)
             return checkout
 
         clean_marker = temporary_root / "clean-checker-count"
@@ -499,11 +499,17 @@ def main():
             failures)
     require("paths contain spaces" in normalized_readme and
             "sole explicitly loaded Makefile" in normalized_readme and
-            "authoritative direct `python3 scripts/check-baseline.py` gate before" in normalized_readme and
+            "candidate-tree consistency check" in normalized_readme and
+            "not an independent authentication or approval boundary" in normalized_readme and
+            "Fork pull requests run candidate code with read-only contents access" in normalized_readme and
             "python3 /path/to/location-manager-sample/scripts/check-baseline.py" in normalized_readme and
             "Arbitrary additional `-f` files" in normalized_readme and
             "`SHELL`" in normalized_readme,
-            "README must document the enforceable sole-Makefile trust boundary and direct authority",
+            "README must document the enforceable sole-Makefile and hosted validation trust boundaries",
+            failures)
+    require("authoritative direct" not in normalized_readme and
+            "authenticates hosted validation" not in normalized_readme,
+            "README must not overclaim candidate-controlled hosted validation authority",
             failures)
 
     require("NSLocationAlwaysAndWhenInUseUsageDescription" in app_plist,
@@ -823,9 +829,14 @@ def main():
             "real recipes" in normalized_spaced_make_plan and
             "sole explicitly loaded Makefile" in normalized_spaced_make_plan and
             "Arbitrary additional `-f` files" in normalized_spaced_make_plan and
-            "Hosted-equivalent validation fails before Make execution" in normalized_spaced_make_plan and
+            "candidate-tree consistency check" in normalized_spaced_make_plan and
+            "not independent authentication" in normalized_spaced_make_plan and
             "direct Python" in normalized_spaced_make_plan,
             "spaced Makefile path plan must record the tested trust boundary",
+            failures)
+    require("authoritative policy" not in normalized_spaced_make_plan and
+            "direct Python execution is the authority" not in normalized_spaced_make_plan,
+            "spaced Makefile path plan must not overclaim candidate-controlled authority",
             failures)
     chronological_publish_status = re.findall(
         r"(?mi)^status:\s*(.+?)\s*$", chronological_publish_plan

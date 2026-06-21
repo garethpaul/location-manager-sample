@@ -9,7 +9,9 @@
   and command-line shell replacement, and changed the portable oracle to run
   real recipes.
 - Moved hosted validation to run the direct Python baseline before the Make
-  convenience check, then parse the Xcode project.
+  convenience check, then parse the Xcode project, while documenting that the
+  candidate-controlled workflow is a consistency guard rather than independent
+  authentication.
 
 ## 2026-06-17
 
