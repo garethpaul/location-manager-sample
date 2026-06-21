@@ -1,5 +1,11 @@
 # Changes
 
+## 2026-06-21
+
+- Made absolute external Makefile invocations work when checkout paths contain
+  spaces or a literal apostrophe while rejecting `ROOT` and `MAKEFILE_LIST`
+  attempts to redirect verification.
+
 ## 2026-06-17
 
 - Aligned successful-save pruning with the startup 64 KiB file-size boundary so
