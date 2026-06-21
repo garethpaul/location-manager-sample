@@ -17,8 +17,17 @@ LATEST_LOCATION_PLAN = ROOT / "docs/plans/2026-06-09-latest-location-update-sele
 CHECKOUT_CREDENTIAL_PLAN = ROOT / "docs/plans/2026-06-12-checkout-credential-boundary.md"
 CHECKOUT_ACTION = "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-EXPECTED_MAKEFILE = """ifneq ($(origin MAKEFILE_LIST),file)
+EXPECTED_MAKEFILE = """ifneq ($(strip $(MAKEFILES)),)
+$(error MAKEFILES must be empty; repository verification requires this Makefile to be loaded alone)
+endif
+ifneq ($(origin MAKEFILE_LIST),file)
 $(error MAKEFILE_LIST must not be overridden)
+endif
+ifneq ($(filter command line override,$(origin SHELL)),)
+$(error SHELL must not be overridden for repository verification)
+endif
+ifneq ($(filter command line override,$(origin .SHELLFLAGS)),)
+$(error .SHELLFLAGS must not be overridden for repository verification)
 endif
 override ROOT := $(shell path='$(subst ','"'"',$(MAKEFILE_LIST))'; path=$$(printf '%s\\n' "$$path" | sed 's/^ //'); dirname -- "$$path")
 
@@ -28,6 +37,28 @@ lint test build: check
 
 check:
 \tpython3 "$(ROOT)/scripts/check-baseline.py"
+"""
+EXPECTED_WORKFLOW = """name: Check
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  baseline:
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
+      - run: python3 scripts/check-baseline.py
+      - run: make check
+      - run: xcodebuild -list -project Journal.xcodeproj
 """
 
 
@@ -91,6 +122,137 @@ def git_ls_files():
     return result.stdout.splitlines()
 
 
+def workflow_run_commands(workflow):
+    commands = []
+    for line in workflow.splitlines():
+        match = re.match(r"^      - run: (.+)$", line)
+        if match:
+            commands.append(match.group(1))
+    return commands
+
+
+def write_hosted_candidate_checker(checkout, expected_makefile, marker):
+    (checkout / "scripts/check-baseline.py").write_text(
+        "#!/usr/bin/env python3\n"
+        "from pathlib import Path\n"
+        "import sys\n"
+        "\n"
+        "root = Path(__file__).resolve().parents[1]\n"
+        f"expected = {expected_makefile!r}\n"
+        f"marker = Path({str(marker)!r})\n"
+        "if (root / 'Makefile').read_text(encoding='utf-8') != expected:\n"
+        "    print('Makefile contract failed', file=sys.stderr)\n"
+        "    sys.exit(1)\n"
+        "count = int(marker.read_text(encoding='utf-8')) if marker.exists() else 0\n"
+        "marker.write_text(str(count + 1), encoding='utf-8')\n"
+        "print('candidate checker executed')\n",
+        encoding="utf-8",
+    )
+
+
+def write_fake_xcodebuild(bin_directory, marker):
+    xcodebuild = bin_directory / "xcodebuild"
+    xcodebuild.write_text(
+        "#!/usr/bin/env python3\n"
+        "from pathlib import Path\n"
+        "import sys\n"
+        "if sys.argv[1:] != ['-list', '-project', 'Journal.xcodeproj']:\n"
+        "    print('unexpected xcodebuild arguments', file=sys.stderr)\n"
+        "    sys.exit(2)\n"
+        f"Path({str(marker)!r}).write_text('xcodebuild parsed project', encoding='utf-8')\n"
+        "print('xcodebuild parsed project')\n",
+        encoding="utf-8",
+    )
+    xcodebuild.chmod(0o755)
+
+
+def run_hosted_workflow_commands(checkout, commands, environment):
+    output = []
+    for command in commands:
+        result = subprocess.run(
+            command,
+            cwd=checkout,
+            env=environment,
+            shell=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        output.extend([f"$ {command}", result.stdout, result.stderr])
+        if result.returncode != 0:
+            return result.returncode, "\n".join(output)
+    return 0, "\n".join(output)
+
+
+def check_hosted_workflow_bootstrap(makefile, workflow, failures):
+    commands = workflow_run_commands(workflow)
+    require(commands == [
+        "python3 scripts/check-baseline.py",
+        "make check",
+        "xcodebuild -list -project Journal.xcodeproj",
+    ], "Check workflow must run direct Python baseline before Make and Xcode gates", failures)
+
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        temporary_root = Path(temporary_directory)
+        bin_directory = temporary_root / "bin"
+        bin_directory.mkdir()
+        xcode_marker = temporary_root / "xcodebuild-ran"
+        write_fake_xcodebuild(bin_directory, xcode_marker)
+        environment = os.environ.copy()
+        environment["PATH"] = f"{bin_directory}{os.pathsep}{environment.get('PATH', '')}"
+
+        def make_checkout(name, makefile_content, marker):
+            checkout = temporary_root / name
+            (checkout / "scripts").mkdir(parents=True)
+            (checkout / "Journal.xcodeproj").mkdir()
+            (checkout / "Makefile").write_text(makefile_content, encoding="utf-8")
+            write_hosted_candidate_checker(checkout, makefile, marker)
+            return checkout
+
+        clean_marker = temporary_root / "clean-checker-count"
+        clean_checkout = make_checkout("clean checkout", makefile, clean_marker)
+        xcode_marker.unlink(missing_ok=True)
+        result_code, output = run_hosted_workflow_commands(
+            clean_checkout, commands, environment
+        )
+        clean_count = clean_marker.read_text(encoding="utf-8") if clean_marker.exists() else ""
+        require(result_code == 0 and clean_count == "2" and xcode_marker.exists(),
+                "Hosted workflow must execute direct Python, Make convenience check, and Xcode project parsing",
+                failures)
+
+        for name, mutation in [
+            ("duplicate global ROOT", "\noverride ROOT := {fake_root}\n"),
+            ("target-specific ROOT", "\ncheck: ROOT := {fake_root}\n"),
+            ("recipe override", "\ncheck:\n\tpython3 \"{fake_root}/scripts/check-baseline.py\"\n"),
+        ]:
+            fake_root = temporary_root / f"{name} fake-root"
+            (fake_root / "scripts").mkdir(parents=True)
+            fake_marker = temporary_root / f"{name} fake-marker"
+            (fake_root / "scripts/check-baseline.py").write_text(
+                "from pathlib import Path\n"
+                f"Path({str(fake_marker)!r}).write_text('fake checker executed', encoding='utf-8')\n"
+                "print('fake checker executed')\n",
+                encoding="utf-8",
+            )
+            marker = temporary_root / f"{name} checker-count"
+            checkout = make_checkout(
+                f"{name} checkout",
+                makefile + mutation.format(fake_root=fake_root),
+                marker,
+            )
+            xcode_marker.unlink(missing_ok=True)
+            result_code, output = run_hosted_workflow_commands(
+                checkout, commands, environment
+            )
+            require(result_code != 0 and
+                    "Makefile contract failed" in output and
+                    not marker.exists() and
+                    not fake_marker.exists() and
+                    not xcode_marker.exists(),
+                    f"Hosted workflow must fail before {name} can redirect Make verification",
+                    failures)
+
+
 def check_makefile_path_resolution(makefile, failures):
     if not shutil.which("make"):
         failures.append("make must be available to verify location-independent gates")
@@ -103,21 +265,33 @@ def check_makefile_path_resolution(makefile, failures):
         checkout.mkdir()
         external.mkdir()
         (checkout / "Makefile").write_text(makefile, encoding="utf-8")
+        scripts = checkout / "scripts"
+        scripts.mkdir()
+        marker = temporary_root / "recipe-ran"
+        (scripts / "check-baseline.py").write_text(
+            "from pathlib import Path\n"
+            f"Path({str(marker)!r}).write_text('repository recipe executed', encoding='utf-8')\n"
+            "print('repository recipe executed')\n",
+            encoding="utf-8",
+        )
 
         for target in ("check", "lint", "test", "build"):
             for extra_arguments in ((), ("ROOT=/tmp/untrusted",), ("-e", "ROOT=/tmp/untrusted")):
+                marker.unlink(missing_ok=True)
                 result = subprocess.run(
-                    ["make", "--dry-run", "-f", str(checkout / "Makefile"),
+                    ["make", "-f", str(checkout / "Makefile"),
                      *extra_arguments, target],
                     cwd=external,
                     text=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                 )
+                marker_content = marker.read_text(encoding="utf-8") if marker.exists() else ""
                 require(result.returncode == 0 and
-                        str(checkout / "scripts/check-baseline.py") in result.stdout and
+                        marker_content == "repository recipe executed" and
+                        "repository recipe executed" in result.stdout and
                         "/tmp/untrusted/" not in result.stdout,
-                        "Make aliases must preserve a spaced checkout root and reject ROOT overrides",
+                        "Make aliases must execute the real repository recipe from a spaced checkout root",
                         failures)
 
         environment = os.environ.copy()
@@ -141,6 +315,49 @@ def check_makefile_path_resolution(makefile, failures):
                     "MAKEFILE_LIST must not be overridden" in result.stderr,
                     "Makefile must fail closed when MAKEFILE_LIST is overridden",
                     failures)
+
+        prelude = temporary_root / "hostile-prelude.mk"
+        prelude.write_text("# Loaded through MAKEFILES before the repository Makefile.\n", encoding="utf-8")
+        prelude_environment = os.environ.copy()
+        prelude_environment["MAKEFILES"] = str(prelude)
+        marker.unlink(missing_ok=True)
+        result = subprocess.run(
+            ["make", "-f", str(checkout / "Makefile"), "check"],
+            cwd=external,
+            env=prelude_environment,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        require(result.returncode != 0 and
+                "MAKEFILES must be empty" in result.stderr and
+                not marker.exists(),
+                "Makefile must fail closed before executing a MAKEFILES-poisoned recipe",
+                failures)
+
+        fake_shell_log = temporary_root / "fake-shell-ran"
+        fake_shell = temporary_root / "fake-shell"
+        fake_shell.write_text(
+            "#!/bin/sh\n"
+            f"printf '%s\\n' invoked >> {str(fake_shell_log)!r}\n"
+            "exit 0\n",
+            encoding="utf-8",
+        )
+        fake_shell.chmod(0o755)
+        marker.unlink(missing_ok=True)
+        result = subprocess.run(
+            ["make", "-f", str(checkout / "Makefile"), f"SHELL={fake_shell}", "check"],
+            cwd=external,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        require(result.returncode != 0 and
+                "SHELL must not be overridden" in result.stderr and
+                not fake_shell_log.exists() and
+                not marker.exists(),
+                "Makefile must reject command-line SHELL before root derivation or recipe execution",
+                failures)
 
 
 def main():
@@ -260,6 +477,8 @@ def main():
     retained_file_eligibility_plan = read("docs/plans/2026-06-17-retained-location-file-eligibility.md")
     save_size_limit_plan = read("docs/plans/2026-06-17-save-location-file-size-limit.md")
     spaced_make_plan = read("docs/plans/2026-06-21-spaced-makefile-path.md")
+    normalized_readme = " ".join(readme.split())
+    normalized_spaced_make_plan = " ".join(spaced_make_plan.split())
     workflow = read(".github/workflows/check.yml")
     workflow_files = [
         *sorted((ROOT / ".github/workflows").glob("*.yml")),
@@ -270,12 +489,27 @@ def main():
     require(makefile == EXPECTED_MAKEFILE,
             "Makefile must exactly preserve rooted lint, test, build, and check gates",
             failures)
+    require(workflow == EXPECTED_WORKFLOW,
+            "Check workflow must exactly preserve direct Python, Make, and Xcode gate order",
+            failures)
+    check_hosted_workflow_bootstrap(makefile, workflow, failures)
     check_makefile_path_resolution(makefile, failures)
     require("make -f /path/to/location-manager-sample/Makefile check" in readme,
             "README must document location-independent Makefile invocation",
             failures)
-    require("paths contain spaces" in readme and "MAKEFILE_LIST" in readme,
-            "README must document spaced paths and protected Makefile metadata",
+    require("paths contain spaces" in normalized_readme and
+            "sole explicitly loaded Makefile" in normalized_readme and
+            "candidate-tree consistency check" in normalized_readme and
+            "not an independent authentication or approval boundary" in normalized_readme and
+            "Fork pull requests run candidate code with read-only contents access" in normalized_readme and
+            "python3 /path/to/location-manager-sample/scripts/check-baseline.py" in normalized_readme and
+            "Arbitrary additional `-f` files" in normalized_readme and
+            "`SHELL`" in normalized_readme,
+            "README must document the enforceable sole-Makefile and hosted validation trust boundaries",
+            failures)
+    require("authoritative direct" not in normalized_readme and
+            "authenticates hosted validation" not in normalized_readme,
+            "README must not overclaim candidate-controlled hosted validation authority",
             failures)
 
     require("NSLocationAlwaysAndWhenInUseUsageDescription" in app_plist,
@@ -590,10 +824,19 @@ def main():
             "five isolated hostile mutations" in location_independent_make_plan,
             "location-independent Make plan must record completed root, external, and mutation verification",
             failures)
-    require("status: completed" in spaced_make_plan and
-            "literal apostrophe" in spaced_make_plan and
-            "MAKEFILE_LIST" in spaced_make_plan,
-            "spaced Makefile path plan must record completed hostile-path verification",
+    require("status: completed" in normalized_spaced_make_plan and
+            "literal apostrophe" in normalized_spaced_make_plan and
+            "real recipes" in normalized_spaced_make_plan and
+            "sole explicitly loaded Makefile" in normalized_spaced_make_plan and
+            "Arbitrary additional `-f` files" in normalized_spaced_make_plan and
+            "candidate-tree consistency check" in normalized_spaced_make_plan and
+            "not independent authentication" in normalized_spaced_make_plan and
+            "direct Python" in normalized_spaced_make_plan,
+            "spaced Makefile path plan must record the tested trust boundary",
+            failures)
+    require("authoritative policy" not in normalized_spaced_make_plan and
+            "direct Python execution is the authority" not in normalized_spaced_make_plan,
+            "spaced Makefile path plan must not overclaim candidate-controlled authority",
             failures)
     chronological_publish_status = re.findall(
         r"(?mi)^status:\s*(.+?)\s*$", chronological_publish_plan
@@ -719,6 +962,8 @@ def main():
     require("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
             "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
             CHECKOUT_ACTION in workflow and
+            "run: python3 scripts/check-baseline.py" in workflow and
+            "run: xcodebuild -list -project Journal.xcodeproj" in workflow and
             "run: make check" in workflow,
             "Check workflow must stay pinned, read-only, and bounded",
             failures)

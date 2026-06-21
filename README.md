@@ -84,16 +84,29 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - The Make gates are location-independent. From another directory, pass the
   checkout's Makefile by absolute path, such as
   `make -f /path/to/location-manager-sample/Makefile check`. This remains
-  supported when checkout paths contain spaces or a literal apostrophe. `ROOT`
-  and `MAKEFILE_LIST` overrides cannot redirect verification into another tree.
+  supported when checkout paths contain spaces or a literal apostrophe when it
+  is the sole explicitly loaded Makefile. The gate rejects `MAKEFILES`, direct
+  `MAKEFILE_LIST` replacement, command-line `SHELL`, and command-line
+  `.SHELLFLAGS` before root derivation or recipe execution.
+- Arbitrary additional `-f` files are caller-supplied Make programs and can
+  replace targets or variables after this Makefile is parsed. Such invocations
+  are not repository verification. When Make's parser or shell is not trusted,
+  run the repository-owned gate directly with
+  `python3 /path/to/location-manager-sample/scripts/check-baseline.py`.
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline so the standard local gate commands stay available while preserving
   the single source of truth for non-Xcode verification.
 - Pinned `macos-15` GitHub Actions uses a read-only, credential-free checkout,
-  runs `make check`, and parses `Journal.xcodeproj` with `xcodebuild -list`.
-  This hosted validation does not request location, inspect saved location
-  JSON, play the GPX route, build or sign the app, launch a simulator, or
-  exercise UI flows.
+  runs the direct `python3 scripts/check-baseline.py` candidate-tree consistency
+  check before the Make convenience check, and parses `Journal.xcodeproj` with
+  `xcodebuild -list`. Fork pull requests run candidate code with read-only
+  contents access and no persisted checkout credentials. Because the workflow
+  and checker both come from the pull request candidate, this is not an
+  independent authentication or approval boundary; the required GitHub Actions
+  provider check proves only that GitHub Actions reported the named job. This
+  hosted validation does not request location, inspect saved location JSON,
+  play the GPX route, build or sign the app, launch a simulator, or exercise UI
+  flows.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
