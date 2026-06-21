@@ -97,10 +97,11 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
   baseline so the standard local gate commands stay available while preserving
   the single source of truth for non-Xcode verification.
 - Pinned `macos-15` GitHub Actions uses a read-only, credential-free checkout,
-  runs `make check`, and parses `Journal.xcodeproj` with `xcodebuild -list`.
-  This hosted validation does not request location, inspect saved location
-  JSON, play the GPX route, build or sign the app, launch a simulator, or
-  exercise UI flows.
+  runs the authoritative direct `python3 scripts/check-baseline.py` gate before
+  the Make convenience check, and parses `Journal.xcodeproj` with
+  `xcodebuild -list`. This hosted validation does not request location, inspect
+  saved location JSON, play the GPX route, build or sign the app, launch a
+  simulator, or exercise UI flows.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.

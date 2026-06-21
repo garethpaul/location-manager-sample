@@ -21,6 +21,9 @@ absolute `make -f` workflow failed when the checkout path contained spaces.
    sole explicitly loaded Makefile. Arbitrary additional `-f` files are
    caller-supplied programs, so direct Python execution is the authority when
    Make parsing or shell selection is not trusted.
+5. Run the hosted direct Python baseline before the Make convenience check so
+   committed global or target-specific `ROOT` overrides and replacement
+   recipes cannot bypass the authoritative policy.
 
 ## Verification
 
@@ -32,5 +35,8 @@ absolute `make -f` workflow failed when the checkout path contained spaces.
   derivation or recipe execution.
 - Portable verification executes real recipes rather than relying on dry-run
   command rendering.
+- Hosted-equivalent validation fails before Make execution when a committed
+  duplicate global `ROOT`, target-specific `ROOT`, or replacement `check`
+  recipe is appended.
 - No location service, saved location file, GPX route, Xcode build, signing, or
   simulator flow was used by portable verification.
