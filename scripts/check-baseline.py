@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import json
+import os
 import plistlib
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 
 
@@ -15,7 +17,10 @@ LATEST_LOCATION_PLAN = ROOT / "docs/plans/2026-06-09-latest-location-update-sele
 CHECKOUT_CREDENTIAL_PLAN = ROOT / "docs/plans/2026-06-12-checkout-credential-boundary.md"
 CHECKOUT_ACTION = "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-EXPECTED_MAKEFILE = """override ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+EXPECTED_MAKEFILE = """ifneq ($(origin MAKEFILE_LIST),file)
+$(error MAKEFILE_LIST must not be overridden)
+endif
+override ROOT := $(shell path='$(subst ','"'"',$(MAKEFILE_LIST))'; path=$$(printf '%s\\n' "$$path" | sed 's/^ //'); dirname -- "$$path")
 
 .PHONY: build check lint test
 
@@ -86,6 +91,58 @@ def git_ls_files():
     return result.stdout.splitlines()
 
 
+def check_makefile_path_resolution(makefile, failures):
+    if not shutil.which("make"):
+        failures.append("make must be available to verify location-independent gates")
+        return
+
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        temporary_root = Path(temporary_directory)
+        checkout = temporary_root / "checkout with spaces 'quoted' [hostile]"
+        external = temporary_root / "external caller"
+        checkout.mkdir()
+        external.mkdir()
+        (checkout / "Makefile").write_text(makefile, encoding="utf-8")
+
+        for target in ("check", "lint", "test", "build"):
+            for extra_arguments in ((), ("ROOT=/tmp/untrusted",), ("-e", "ROOT=/tmp/untrusted")):
+                result = subprocess.run(
+                    ["make", "--dry-run", "-f", str(checkout / "Makefile"),
+                     *extra_arguments, target],
+                    cwd=external,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+                require(result.returncode == 0 and
+                        str(checkout / "scripts/check-baseline.py") in result.stdout and
+                        "/tmp/untrusted/" not in result.stdout,
+                        "Make aliases must preserve a spaced checkout root and reject ROOT overrides",
+                        failures)
+
+        environment = os.environ.copy()
+        environment["MAKEFILE_LIST"] = "/tmp/untrusted"
+        attacks = (
+            (["make", "--dry-run", "-f", str(checkout / "Makefile"),
+              "MAKEFILE_LIST=/tmp/untrusted", "check"], None),
+            (["make", "-e", "--dry-run", "-f", str(checkout / "Makefile"), "check"],
+             environment),
+        )
+        for command, attack_environment in attacks:
+            result = subprocess.run(
+                command,
+                cwd=external,
+                env=attack_environment,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            require(result.returncode != 0 and
+                    "MAKEFILE_LIST must not be overridden" in result.stderr,
+                    "Makefile must fail closed when MAKEFILE_LIST is overridden",
+                    failures)
+
+
 def main():
     failures = []
     required_files = [
@@ -118,6 +175,7 @@ def main():
         "docs/plans/2026-06-16-retained-location-file-cap.md",
         "docs/plans/2026-06-17-retained-location-file-eligibility.md",
         "docs/plans/2026-06-17-save-location-file-size-limit.md",
+        "docs/plans/2026-06-21-spaced-makefile-path.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "Journal/Info.plist",
@@ -201,6 +259,7 @@ def main():
     retained_file_cap_plan = read("docs/plans/2026-06-16-retained-location-file-cap.md")
     retained_file_eligibility_plan = read("docs/plans/2026-06-17-retained-location-file-eligibility.md")
     save_size_limit_plan = read("docs/plans/2026-06-17-save-location-file-size-limit.md")
+    spaced_make_plan = read("docs/plans/2026-06-21-spaced-makefile-path.md")
     workflow = read(".github/workflows/check.yml")
     workflow_files = [
         *sorted((ROOT / ".github/workflows").glob("*.yml")),
@@ -211,8 +270,12 @@ def main():
     require(makefile == EXPECTED_MAKEFILE,
             "Makefile must exactly preserve rooted lint, test, build, and check gates",
             failures)
+    check_makefile_path_resolution(makefile, failures)
     require("make -f /path/to/location-manager-sample/Makefile check" in readme,
             "README must document location-independent Makefile invocation",
+            failures)
+    require("paths contain spaces" in readme and "MAKEFILE_LIST" in readme,
+            "README must document spaced paths and protected Makefile metadata",
             failures)
 
     require("NSLocationAlwaysAndWhenInUseUsageDescription" in app_plist,
@@ -526,6 +589,11 @@ def main():
             "root and external-directory" in location_independent_make_plan and
             "five isolated hostile mutations" in location_independent_make_plan,
             "location-independent Make plan must record completed root, external, and mutation verification",
+            failures)
+    require("status: completed" in spaced_make_plan and
+            "literal apostrophe" in spaced_make_plan and
+            "MAKEFILE_LIST" in spaced_make_plan,
+            "spaced Makefile path plan must record completed hostile-path verification",
             failures)
     chronological_publish_status = re.findall(
         r"(?mi)^status:\s*(.+?)\s*$", chronological_publish_plan
