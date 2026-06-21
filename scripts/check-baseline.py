@@ -17,8 +17,17 @@ LATEST_LOCATION_PLAN = ROOT / "docs/plans/2026-06-09-latest-location-update-sele
 CHECKOUT_CREDENTIAL_PLAN = ROOT / "docs/plans/2026-06-12-checkout-credential-boundary.md"
 CHECKOUT_ACTION = "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-EXPECTED_MAKEFILE = """ifneq ($(origin MAKEFILE_LIST),file)
+EXPECTED_MAKEFILE = """ifneq ($(strip $(MAKEFILES)),)
+$(error MAKEFILES must be empty; repository verification requires this Makefile to be loaded alone)
+endif
+ifneq ($(origin MAKEFILE_LIST),file)
 $(error MAKEFILE_LIST must not be overridden)
+endif
+ifneq ($(filter command line override,$(origin SHELL)),)
+$(error SHELL must not be overridden for repository verification)
+endif
+ifneq ($(filter command line override,$(origin .SHELLFLAGS)),)
+$(error .SHELLFLAGS must not be overridden for repository verification)
 endif
 override ROOT := $(shell path='$(subst ','"'"',$(MAKEFILE_LIST))'; path=$$(printf '%s\\n' "$$path" | sed 's/^ //'); dirname -- "$$path")
 
@@ -103,21 +112,33 @@ def check_makefile_path_resolution(makefile, failures):
         checkout.mkdir()
         external.mkdir()
         (checkout / "Makefile").write_text(makefile, encoding="utf-8")
+        scripts = checkout / "scripts"
+        scripts.mkdir()
+        marker = temporary_root / "recipe-ran"
+        (scripts / "check-baseline.py").write_text(
+            "from pathlib import Path\n"
+            f"Path({str(marker)!r}).write_text('repository recipe executed', encoding='utf-8')\n"
+            "print('repository recipe executed')\n",
+            encoding="utf-8",
+        )
 
         for target in ("check", "lint", "test", "build"):
             for extra_arguments in ((), ("ROOT=/tmp/untrusted",), ("-e", "ROOT=/tmp/untrusted")):
+                marker.unlink(missing_ok=True)
                 result = subprocess.run(
-                    ["make", "--dry-run", "-f", str(checkout / "Makefile"),
+                    ["make", "-f", str(checkout / "Makefile"),
                      *extra_arguments, target],
                     cwd=external,
                     text=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                 )
+                marker_content = marker.read_text(encoding="utf-8") if marker.exists() else ""
                 require(result.returncode == 0 and
-                        str(checkout / "scripts/check-baseline.py") in result.stdout and
+                        marker_content == "repository recipe executed" and
+                        "repository recipe executed" in result.stdout and
                         "/tmp/untrusted/" not in result.stdout,
-                        "Make aliases must preserve a spaced checkout root and reject ROOT overrides",
+                        "Make aliases must execute the real repository recipe from a spaced checkout root",
                         failures)
 
         environment = os.environ.copy()
@@ -141,6 +162,49 @@ def check_makefile_path_resolution(makefile, failures):
                     "MAKEFILE_LIST must not be overridden" in result.stderr,
                     "Makefile must fail closed when MAKEFILE_LIST is overridden",
                     failures)
+
+        prelude = temporary_root / "hostile-prelude.mk"
+        prelude.write_text("# Loaded through MAKEFILES before the repository Makefile.\n", encoding="utf-8")
+        prelude_environment = os.environ.copy()
+        prelude_environment["MAKEFILES"] = str(prelude)
+        marker.unlink(missing_ok=True)
+        result = subprocess.run(
+            ["make", "-f", str(checkout / "Makefile"), "check"],
+            cwd=external,
+            env=prelude_environment,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        require(result.returncode != 0 and
+                "MAKEFILES must be empty" in result.stderr and
+                not marker.exists(),
+                "Makefile must fail closed before executing a MAKEFILES-poisoned recipe",
+                failures)
+
+        fake_shell_log = temporary_root / "fake-shell-ran"
+        fake_shell = temporary_root / "fake-shell"
+        fake_shell.write_text(
+            "#!/bin/sh\n"
+            f"printf '%s\\n' invoked >> {str(fake_shell_log)!r}\n"
+            "exit 0\n",
+            encoding="utf-8",
+        )
+        fake_shell.chmod(0o755)
+        marker.unlink(missing_ok=True)
+        result = subprocess.run(
+            ["make", "-f", str(checkout / "Makefile"), f"SHELL={fake_shell}", "check"],
+            cwd=external,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        require(result.returncode != 0 and
+                "SHELL must not be overridden" in result.stderr and
+                not fake_shell_log.exists() and
+                not marker.exists(),
+                "Makefile must reject command-line SHELL before root derivation or recipe execution",
+                failures)
 
 
 def main():
@@ -260,6 +324,8 @@ def main():
     retained_file_eligibility_plan = read("docs/plans/2026-06-17-retained-location-file-eligibility.md")
     save_size_limit_plan = read("docs/plans/2026-06-17-save-location-file-size-limit.md")
     spaced_make_plan = read("docs/plans/2026-06-21-spaced-makefile-path.md")
+    normalized_readme = " ".join(readme.split())
+    normalized_spaced_make_plan = " ".join(spaced_make_plan.split())
     workflow = read(".github/workflows/check.yml")
     workflow_files = [
         *sorted((ROOT / ".github/workflows").glob("*.yml")),
@@ -274,8 +340,12 @@ def main():
     require("make -f /path/to/location-manager-sample/Makefile check" in readme,
             "README must document location-independent Makefile invocation",
             failures)
-    require("paths contain spaces" in readme and "MAKEFILE_LIST" in readme,
-            "README must document spaced paths and protected Makefile metadata",
+    require("paths contain spaces" in normalized_readme and
+            "sole explicitly loaded Makefile" in normalized_readme and
+            "python3 /path/to/location-manager-sample/scripts/check-baseline.py" in normalized_readme and
+            "Arbitrary additional `-f` files" in normalized_readme and
+            "`SHELL`" in normalized_readme,
+            "README must document the enforceable sole-Makefile trust boundary and direct authority",
             failures)
 
     require("NSLocationAlwaysAndWhenInUseUsageDescription" in app_plist,
@@ -590,10 +660,13 @@ def main():
             "five isolated hostile mutations" in location_independent_make_plan,
             "location-independent Make plan must record completed root, external, and mutation verification",
             failures)
-    require("status: completed" in spaced_make_plan and
-            "literal apostrophe" in spaced_make_plan and
-            "MAKEFILE_LIST" in spaced_make_plan,
-            "spaced Makefile path plan must record completed hostile-path verification",
+    require("status: completed" in normalized_spaced_make_plan and
+            "literal apostrophe" in normalized_spaced_make_plan and
+            "real recipes" in normalized_spaced_make_plan and
+            "sole explicitly loaded Makefile" in normalized_spaced_make_plan and
+            "Arbitrary additional `-f` files" in normalized_spaced_make_plan and
+            "direct Python" in normalized_spaced_make_plan,
+            "spaced Makefile path plan must record the tested trust boundary",
             failures)
     chronological_publish_status = re.findall(
         r"(?mi)^status:\s*(.+?)\s*$", chronological_publish_plan

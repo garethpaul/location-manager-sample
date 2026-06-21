@@ -84,8 +84,15 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - The Make gates are location-independent. From another directory, pass the
   checkout's Makefile by absolute path, such as
   `make -f /path/to/location-manager-sample/Makefile check`. This remains
-  supported when checkout paths contain spaces or a literal apostrophe. `ROOT`
-  and `MAKEFILE_LIST` overrides cannot redirect verification into another tree.
+  supported when checkout paths contain spaces or a literal apostrophe when it
+  is the sole explicitly loaded Makefile. The gate rejects `MAKEFILES`, direct
+  `MAKEFILE_LIST` replacement, command-line `SHELL`, and command-line
+  `.SHELLFLAGS` before root derivation or recipe execution.
+- Arbitrary additional `-f` files are caller-supplied Make programs and can
+  replace targets or variables after this Makefile is parsed. Such invocations
+  are not repository verification. When Make's parser or shell is not trusted,
+  run the repository-owned gate directly with
+  `python3 /path/to/location-manager-sample/scripts/check-baseline.py`.
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline so the standard local gate commands stay available while preserving
   the single source of truth for non-Xcode verification.

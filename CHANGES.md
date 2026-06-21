@@ -5,6 +5,9 @@
 - Made absolute external Makefile invocations work when checkout paths contain
   spaces or a literal apostrophe while rejecting `ROOT` and `MAKEFILE_LIST`
   attempts to redirect verification.
+- Made the sole-Makefile verification boundary explicit, rejected `MAKEFILES`
+  and command-line shell replacement, and changed the portable oracle to run
+  real recipes.
 
 ## 2026-06-17
 

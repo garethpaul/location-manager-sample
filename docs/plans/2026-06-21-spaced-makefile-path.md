@@ -11,10 +11,16 @@ absolute `make -f` workflow failed when the checkout path contained spaces.
 
 1. Derive the root from the raw Makefile path with shell-safe quote handling
    and POSIX `printf`/`sed` normalization.
-2. Preserve `override ROOT` and reject command-line or environment replacement
-   of `MAKEFILE_LIST`.
-3. Dry-run every verification alias from an unrelated directory against a path
-   containing spaces, brackets, and a literal apostrophe.
+2. Preserve `override ROOT` and reject `MAKEFILES`, command-line or environment
+   replacement of `MAKEFILE_LIST`, and command-line shell replacement before
+   root derivation or target execution.
+3. Execute the real recipes for every verification alias from an unrelated
+   directory against a path containing spaces, brackets, and a literal
+   apostrophe.
+4. Define the enforceable Make boundary as the repository Makefile being the
+   sole explicitly loaded Makefile. Arbitrary additional `-f` files are
+   caller-supplied programs, so direct Python execution is the authority when
+   Make parsing or shell selection is not trusted.
 
 ## Verification
 
@@ -22,5 +28,9 @@ absolute `make -f` workflow failed when the checkout path contained spaces.
   gates passed.
 - Hostile `ROOT` values could not redirect commands.
 - Command-line and environment `MAKEFILE_LIST` attacks failed closed.
+- `MAKEFILES` and command-line `SHELL` attacks failed before repository root
+  derivation or recipe execution.
+- Portable verification executes real recipes rather than relying on dry-run
+  command rendering.
 - No location service, saved location file, GPX route, Xcode build, signing, or
   simulator flow was used by portable verification.
