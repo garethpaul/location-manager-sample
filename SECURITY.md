@@ -47,6 +47,8 @@ Helpful reports include:
 - Views that observe saved-location notifications should remove those notification observers when deallocated.
 - Saved-location publishing should keep main-thread notification delivery because notification observers update UIKit and MapKit state.
 - Local visit notifications should use a redacted notification body rather than exposing precise place descriptions outside the app.
+- Visit notifications should use unique timestamp-UUID request identifiers so
+  one rapid save cannot replace another pending redacted alert.
 - Reverse-geocode fallback descriptions should keep local location saves
   available without requiring a precise placemark.
 - The places table index guard should remain before reading saved locations because notification-driven updates can change storage between row counting and cell rendering.

@@ -80,7 +80,8 @@ extension AppDelegate: CLLocationManagerDelegate {
     content.sound = UNNotificationSound.default
     
     let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-    let request = UNNotificationRequest(identifier: location.dateString, content: content, trigger: trigger)
+    let notificationIdentifier = "\(location.date.timeIntervalSince1970)-\(UUID().uuidString)"
+    let request = UNNotificationRequest(identifier: notificationIdentifier, content: content, trigger: trigger)
     
     center.add(request, withCompletionHandler: nil)
   }
