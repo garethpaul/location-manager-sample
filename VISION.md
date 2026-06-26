@@ -43,6 +43,7 @@ Priority:
 - Pair saved-location notification observer registration with cleanup
 - Keep saved-location notification delivery on the main thread for UIKit/MapKit observers
 - Keep precise place descriptions out of the redacted notification body
+- Keep visit notification request identifiers unique with timestamp-UUID values
 - Keep the places table index guard before reading saved locations
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates

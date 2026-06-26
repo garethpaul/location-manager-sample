@@ -1,5 +1,38 @@
 # Changes
 
+## 2026-06-26 10:53 PDT - P1 - Preserve rapid visit notifications
+
+### Summary
+Made each local visit notification request identifier unique so multiple saves
+within the same formatted second cannot replace an earlier pending alert.
+
+### Work completed
+- Replaced the localized `dateString` identifier with a timestamp-plus-UUID value.
+- Added a source-order contract, hostile regression, maintainer guidance, and a completed design record.
+
+### Threads
+- None; work completed directly to avoid overlap with active repositories.
+
+### Files changed
+- `Journal/AppDelegate.swift` — assigns unique identifiers before scheduling alerts.
+- `scripts/check-baseline.py` — enforces identifier uniqueness and synchronized evidence.
+- `README.md`, `SECURITY.md`, `VISION.md`, `CHANGES.md`, `docs/plans/2026-06-26-unique-location-notification-identifiers.md` — document the boundary and cycle.
+
+### Validation
+- Focused baseline — passed after first failing on the old identifier.
+- Isolated `dateString` mutation — rejected with the intended contract failure.
+- `make lint`, `make test`, `make build`, `make check`, external absolute-Makefile verification, Python compilation, and whitespace audit — passed.
+- Apple UserNotifications documentation — confirms reused identifiers replace pending requests.
+
+### Bugs / findings
+- P1 correctness: two rapid saves could collapse into one pending local notification.
+
+### Blockers
+- `xcodebuild` is unavailable on this Linux host; hosted macOS remains the project-parse boundary.
+
+### Next action
+- Publish the PR, verify hosted macOS and CodeQL gates, and merge only the green SHA.
+
 ## 2026-06-21
 
 - Made absolute external Makefile invocations work when checkout paths contain

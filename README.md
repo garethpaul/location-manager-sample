@@ -75,6 +75,8 @@ The setup commands above are derived from repository files. Legacy mobile, Pytho
 - Successful saves are inserted by date before observers are notified, so
   asynchronous geocoding cannot leave the in-memory journal out of order.
 - Visit notifications use a redacted notification body so precise place descriptions stay inside the app.
+- Visit notifications use unique timestamp-UUID request identifiers so saves in
+  the same formatted second do not replace an earlier pending alert.
 - Reverse-geocode fallback descriptions keep local location saves working when
   the geocoder returns no placemark.
 
